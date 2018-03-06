@@ -1,6 +1,6 @@
 {
-  "id":"test-import-export",
-  "realm":"test-import-export",
+  "id":"test-export",
+  "realm":"test-export",
   "notBefore":0,
   "revokeRefreshToken":false,
   "refreshTokenMaxReuse":0,
@@ -41,7 +41,7 @@
         "scopeParamRequired":false,
         "composite":false,
         "clientRole":false,
-        "containerId":"test-import-export"
+        "containerId":"test-export"
       },
       {
         "id":"1062a69b-331f-4d55-8041-85ca04f71599",
@@ -50,7 +50,7 @@
         "scopeParamRequired":true,
         "composite":false,
         "clientRole":false,
-        "containerId":"test-import-export"
+        "containerId":"test-export"
       }
     ],
     "client":{
@@ -423,13 +423,13 @@
       "id":"c2751b2e-d00e-4f69-8a95-d445ace1dcf2",
       "clientId":"security-admin-console",
       "name":"${client_security-admin-console}",
-      "baseUrl":"/auth/admin/test-import-export/console/index.html",
+      "baseUrl":"/auth/admin/test-export/console/index.html",
       "surrogateAuthRequired":false,
       "enabled":true,
       "clientAuthenticatorType":"client-secret",
       "secret":"**********",
       "redirectUris":[
-        "/auth/admin/test-import-export/console/*"
+        "/auth/admin/test-export/console/*"
       ],
       "webOrigins":[
 
@@ -688,7 +688,7 @@
       "id":"d0232b7c-1249-4c67-b87c-4c6d743a471c",
       "clientId":"account",
       "name":"${client_account}",
-      "baseUrl":"/auth/realms/test-import-export/account",
+      "baseUrl":"/auth/realms/test-export/account",
       "surrogateAuthRequired":false,
       "enabled":true,
       "clientAuthenticatorType":"client-secret",
@@ -698,7 +698,7 @@
         "manage-account"
       ],
       "redirectUris":[
-        "/auth/realms/test-import-export/account/*"
+        "/auth/realms/test-export/account/*"
       ],
       "webOrigins":[
 

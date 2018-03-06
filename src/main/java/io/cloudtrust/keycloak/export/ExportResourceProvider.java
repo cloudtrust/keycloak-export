@@ -1,4 +1,4 @@
-package io.cloudtrust.keycloak.importexport;
+package io.cloudtrust.keycloak.export;
 
 import org.jboss.logging.Logger;
 import org.jboss.resteasy.spi.UnauthorizedException;
@@ -27,11 +27,11 @@ import javax.ws.rs.*;
 import javax.ws.rs.core.*;
 
 /**
- * ImportExportResourceProvider exposes two endpoints to import and export realms
+ * ExportResourceProvider exposes two endpoints to import and export realms
  */
-public class ImportExportResourceProvider implements RealmResourceProvider {
+public class ExportResourceProvider implements RealmResourceProvider {
 
-    protected static final Logger logger = Logger.getLogger(ImportExportResourceProvider.class);
+    protected static final Logger logger = Logger.getLogger(ExportResourceProvider.class);
 
     private KeycloakSession session;
 
@@ -40,7 +40,7 @@ public class ImportExportResourceProvider implements RealmResourceProvider {
     @Context
     protected ClientConnection clientConnection;
 
-    public ImportExportResourceProvider(KeycloakSession session) {
+    public ExportResourceProvider(KeycloakSession session) {
         this.session = session;
         this.authManager = new AppAuthManager();
 
@@ -65,32 +65,13 @@ public class ImportExportResourceProvider implements RealmResourceProvider {
         if(isMasterAdmin(adminAuth)){
             return ExportUtils.exportRealm(session, realm, true, true);
         } else {
-            throw new ForbiddenException("Forbidden");
-        }
-    }
-
-    @POST
-    @Path("realm")
-    @Consumes(MediaType.APPLICATION_JSON)
-    //TODO add strategy as param?
-    public Response importRealm(final RealmRepresentation rep, @Context final HttpHeaders headers, @Context final UriInfo uriInfo) {
-        String name = session.getContext().getRealm().getName();
-        RealmModel urlRealm = session.realms().getRealmByName(name);
-        if (urlRealm == null) throw new NotFoundException("Realm not found.");
-        AdminAuth adminAuth = authenticateRealmAdminRequest(headers, uriInfo);
-        if(canImportRealm(adminAuth, rep, urlRealm)){
-                ImportUtils.importRealm(session, rep, ExportImportConfig.getStrategy(), false);
-                return Response.ok().build();
-        } else {
             throw new ForbiddenException();
         }
     }
 
-
     @Override
     public void close() {
     }
-
 
     /**
      * This code has been copied from keycloak org.keycloak.services.resources.admin.AdminRoot;
@@ -127,20 +108,6 @@ public class ImportExportResourceProvider implements RealmResourceProvider {
         }
 
         return new AdminAuth(realm, authResult.getToken(), authResult.getUser(), client);
-    }
-
-    private boolean canImportRealm(AdminAuth auth, RealmRepresentation rep, RealmModel urlRealm) {
-        if(session.realms().getRealmByName(rep.getRealm())!=null){
-            // if realm exists
-            // check if user can manage the realm his connected to (master admin for now)
-            // and that he is connected to the realm he is trying to import(to avoid wrong import)
-            return isMasterAdmin(auth) && urlRealm.getName().equals(rep.getRealm());
-        } else {
-            // if realm does not exist
-            // check connected to Master and has Role Create Realm
-            return Config.getAdminRealm().equals(auth.getRealm().getName()) &&
-                    auth.hasRealmRole(AdminRoles.CREATE_REALM);
-        }
     }
 
     private boolean isMasterAdmin(AdminAuth auth){

@@ -15,4 +15,4 @@
 # limitations under the License.
 #
 
-io.cloudtrust.keycloak.importexport.ImportExportResourceProviderFactory
+io.cloudtrust.keycloak.export.ExportResourceProviderFactory

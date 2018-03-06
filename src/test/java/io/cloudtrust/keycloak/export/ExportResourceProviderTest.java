@@ -1,4 +1,4 @@
-package io.cloudtrust.keycloak.importexport;
+package io.cloudtrust.keycloak.export;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -18,6 +18,7 @@ import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.container.test.api.RunAsClient;
 import org.jboss.arquillian.container.test.api.TargetsContainer;
 import org.jboss.arquillian.junit.Arquillian;
+import org.jboss.logging.Logger;
 import org.jboss.shrinkwrap.api.Archive;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.spec.JavaArchive;
@@ -31,10 +32,13 @@ import org.keycloak.representations.idm.*;
 import org.keycloak.services.resource.RealmResourceProviderFactory;
 import org.keycloak.test.TestsHelper;
 
+import javax.ws.rs.ForbiddenException;
+import javax.ws.rs.core.Response;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.IntStream;
 
@@ -43,13 +47,17 @@ import static org.hamcrest.Matchers.hasProperty;
 
 @RunWith(Arquillian.class)
 @RunAsClient
-public class ImportExportResourceProviderTest {
+public class ExportResourceProviderTest {
 
-    private static final String MODULE_JAR = "keycloak-import-export";
+    protected static final Logger logger = Logger.getLogger(ExportResourceProviderTest.class);
+
+    private static final String MODULE_JAR = "keycloak-export";
     private static final String CLIENT = "admin-cli";
+    private static final String TEST_USER = "user-test-export";
     private static ClientRepresentation clientBeforeChanges;
-    private static final String TEST_REALM_NAME = "test-import-export";
+    private static final String TEST_REALM_NAME = "test-export";
     private static final String TEST_REALM_PATH = "src/test/resources/"+TEST_REALM_NAME+"-realm.json" ;
+
 
     @Rule
     public ExpectedException expectedEx = ExpectedException.none();
@@ -58,6 +66,7 @@ public class ImportExportResourceProviderTest {
     public static void initRealmAndUsers() throws IOException {
         Keycloak keycloak = Keycloak.getInstance(TestsHelper.keycloakBaseUrl, "master", "admin", "admin", CLIENT);
         clientBeforeChanges=keycloak.realms().realm("master").clients().findByClientId(CLIENT).get(0);
+        createTestUser("admin", "admin", "master", TEST_USER, "password");
         if(!clientBeforeChanges.isFullScopeAllowed()){
             ClientRepresentation modifiedClient= keycloak.realms().realm("master").clients().get(clientBeforeChanges.getId()).toRepresentation();
             modifiedClient.setFullScopeAllowed(true);
@@ -79,6 +88,9 @@ public class ImportExportResourceProviderTest {
     public static void resetRealm(){
         //idempotence
         Keycloak keycloak = Keycloak.getInstance(TestsHelper.keycloakBaseUrl, "master", "admin", "admin", CLIENT);
+        UserRepresentation user=keycloak.realm("master").users().search(TEST_USER).get(0);
+        keycloak.realm("master").users().delete(user.getId());
+        keycloak.realm("master").roles().get("user").remove();
         if(clientBeforeChanges!=null){
             keycloak.realms().realm("master").clients().get(clientBeforeChanges.getId()).update(clientBeforeChanges);
         }
@@ -87,12 +99,12 @@ public class ImportExportResourceProviderTest {
     @Deployment(name=MODULE_JAR, testable = false)
     @TargetsContainer("keycloak-remote")
     public static Archive<?> createProviderArchive() throws IOException {
-        return ShrinkWrap.create(JavaArchive.class, "keycloak-import-export.jar")
+        return ShrinkWrap.create(JavaArchive.class, "keycloak-export.jar")
                 .addClasses(
-                        ImportExportResourceProvider.class,
-                        ImportExportResourceProviderFactory.class)
+                        ExportResourceProvider.class,
+                        ExportResourceProviderFactory.class)
                 .addAsManifestResource(new File("src/test/resources", "MANIFEST.MF"))
-                .addAsServiceProvider(RealmResourceProviderFactory.class, ImportExportResourceProviderFactory.class);
+                .addAsServiceProvider(RealmResourceProviderFactory.class, ExportResourceProviderFactory.class);
     }
 
     @Test
@@ -108,27 +120,6 @@ public class ImportExportResourceProviderTest {
     }
 
     @Test
-    public void adminCanImportTestRealm() throws IOException {
-        try{
-            Keycloak keycloak = Keycloak.getInstance(TestsHelper.keycloakBaseUrl, "master", "admin", "admin", "admin-cli");
-            String token=keycloak.tokenManager().getAccessTokenString();
-            RealmRepresentation fileRepresentation=new ObjectMapper().readValue(new File(TEST_REALM_PATH), RealmRepresentation.class);
-            Assert.assertNotNull(fileRepresentation);
-            importRealm(token, "master", fileRepresentation);
-            RealmResource importedRealmResource = keycloak.realm(TEST_REALM_NAME);
-            Assert.assertEquals(fileRepresentation.getRealm(), importedRealmResource.toRepresentation().getRealm());
-            Assert.assertEquals(fileRepresentation.getUsers().size(), importedRealmResource.users().count().longValue());
-            Assert.assertEquals(fileRepresentation.getClients().size(), importedRealmResource.clients().findAll().size());
-            //make sure passwords are imported
-            UserRepresentation user=importedRealmResource.users().search("user2").get(0);
-            Assert.assertNotNull(user);
-        }finally {
-            //idempotence
-            TestsHelper.deleteRealm("admin", "admin", TEST_REALM_NAME);
-        }
-    }
-
-    @Test
     public void importEqualsExport() throws IOException {
         try{
             Keycloak keycloak = Keycloak.getInstance(TestsHelper.keycloakBaseUrl, "master", "admin", "admin", "admin-cli");
@@ -136,7 +127,7 @@ public class ImportExportResourceProviderTest {
             JsonNode fileJson=new ObjectMapper().readTree(new File(TEST_REALM_PATH));
             RealmRepresentation fileRepresentation=new ObjectMapper().readValue(new File(TEST_REALM_PATH), RealmRepresentation.class);
             Assert.assertNotNull(fileRepresentation);
-            importRealm(token, "master", fileRepresentation);
+            TestsHelper.importTestRealm("admin", "admin", "/"+TEST_REALM_NAME+"-realm.json");
             RealmRepresentation exportedRealm = exportRealm(token, TEST_REALM_NAME);
             Assert.assertEquals(fileRepresentation.getUsers().size(), exportedRealm.getUsers().size());
             //making sur all users are imported
@@ -191,55 +182,35 @@ public class ImportExportResourceProviderTest {
 
     @Test
     public void nonAdminCantExport() throws IOException {
-        Keycloak keycloak = Keycloak.getInstance(TestsHelper.keycloakBaseUrl, "master", "user50", "password", "admin-cli");
+        Keycloak keycloak = Keycloak.getInstance(TestsHelper.keycloakBaseUrl, "master", TEST_USER, "password", "admin-cli");
         String token=keycloak.tokenManager().getAccessTokenString();
         expectedEx.expect(HttpResponseException.class);
         expectedEx.expect(hasProperty("statusCode", is(403)));
         exportRealm(token, "master");
     }
 
-//    @Test
-//    public void nonAdminCantImport() throws IOException {
-//        TestsHelper.importTestRealm("admin", "admin", "");
-//        Keycloak keycloak = Keycloak.getInstance(TestsHelper.keycloakBaseUrl, "master", "user50", "password", "admin-cli");
-//        String token=keycloak.tokenManager().getAccessTokenString();
-//        RealmRepresentation fileRepresentation=new ObjectMapper().readValue(new File(TEST_REALM_PATH), RealmRepresentation.class);
-//        Assert.assertNotNull(fileRepresentation);
-//        expectedEx.expect(HttpResponseException.class);
-//        expectedEx.expect(hasProperty("statusCode", is(403)));
-//        importRealm(token, TEST);
-//    }
 
-    @Test
-    public void testBuiltInImport() throws IOException {
-        try{
-            RealmRepresentation fileRepresentation=new ObjectMapper().readValue(new File(TEST_REALM_PATH), RealmRepresentation.class);
+    @Test(expected = ForbiddenException.class)
+    public void nonAdminCantBuiltInImport() throws IOException {
+
+        boolean realmImported=false;
+        try {
+            RealmRepresentation fileRepresentation = new ObjectMapper().readValue(new File(TEST_REALM_PATH), RealmRepresentation.class);
             Assert.assertNotNull(fileRepresentation);
-            TestsHelper.importTestRealm("admin", "admin", "/"+TEST_REALM_NAME+"-realm.json");
-            Keycloak keycloak = Keycloak.getInstance(TestsHelper.keycloakBaseUrl, "master", "admin", "admin", "admin-cli");
-            RealmResource importedRealmResource = keycloak.realm(TEST_REALM_NAME);
-            Assert.assertEquals(fileRepresentation.getRealm(), importedRealmResource.toRepresentation().getRealm());
-            Assert.assertEquals(fileRepresentation.getUsers().size(), importedRealmResource.users().count().longValue());
-            Assert.assertEquals(fileRepresentation.getClients().size(), importedRealmResource.clients().findAll().size());
-            //make sure passwords are imported
-            UserRepresentation user=importedRealmResource.users().search("user2").get(0);
-            Assert.assertNotNull(user);
-        }finally {
+            TestsHelper.importTestRealm(TEST_USER, "password", "/" + TEST_REALM_NAME + "-realm.json");
+            realmImported=true;
+        } finally {
             //idempotence
-            TestsHelper.deleteRealm("admin", "admin", TEST_REALM_NAME);
+            if(realmImported){
+                TestsHelper.deleteRealm("admin", "admin", TEST_REALM_NAME);
+            }
         }
     }
 
-
-//    @Test
-//    public void adminCantImportExistingRealmWithWrongUrl() throws IOException {
-//
-//    }
-
-    public static RealmRepresentation exportRealm(String token, String realm) throws IOException {
+    private static RealmRepresentation exportRealm(String token, String realm) throws IOException {
         CloseableHttpClient client = HttpClientBuilder.create().build();
         try {
-            HttpGet get = new HttpGet(TestsHelper.keycloakBaseUrl + "/realms/"+realm+"/importexport/realm");
+            HttpGet get = new HttpGet(TestsHelper.keycloakBaseUrl + "/realms/"+realm+"/export/realm");
             get.addHeader("Authorization", "Bearer " + token);
 
             HttpResponse response = client.execute(get);
@@ -259,23 +230,34 @@ public class ImportExportResourceProviderTest {
         }
     }
 
-    public static void importRealm(String token, String urlRealm, RealmRepresentation realmRepresentation) throws IOException {
-        CloseableHttpClient client = HttpClientBuilder.create().build();
+    //TODO replace this with TestsHelper.createTestUser once issue KEYCLOAK-6807 is resolved
+    private static boolean createTestUser(String username, String password, String realmName, String newUsername, String newPassword) throws IOException {
 
-        try {
-            HttpPost post = new HttpPost(TestsHelper.keycloakBaseUrl + "/realms/"+urlRealm+"/importexport/realm");
-            post.setEntity(new StringEntity(new ObjectMapper().writeValueAsString(realmRepresentation)));
-            post.addHeader("Authorization", "Bearer " + token);
-            post.addHeader("Content-type", "application/json");
-            HttpResponse response = client.execute(post);
-            int statusCode=response.getStatusLine().getStatusCode();
-            if ( statusCode < 200 || statusCode >= 300) {
-                throw new HttpResponseException(response.getStatusLine().getStatusCode(), "export failed");
-            }
-            HttpEntity entity = response.getEntity();
+        Keycloak keycloak = Keycloak.getInstance(
+                TestsHelper.keycloakBaseUrl,
+                "master",
+                username,
+                password,
+                "admin-cli");
+        UserRepresentation userRepresentation = new UserRepresentation();
+        userRepresentation.setUsername(newUsername);
+        userRepresentation.setEnabled(Boolean.TRUE);
+        Response response = keycloak.realms().realm(realmName).users().create(userRepresentation);
+        String userId = TestsHelper.getCreatedId(response);
+        response.close();
+        CredentialRepresentation rep = new CredentialRepresentation();
+        rep.setType(CredentialRepresentation.PASSWORD);
+        rep.setValue(newPassword);
+        rep.setTemporary(false);
+        keycloak.realms().realm(realmName).users().get(userId).resetPassword(rep);
+        //add roles
+        RoleRepresentation representation = new RoleRepresentation();
+        representation.setName("user");
 
-        } finally {
-            client.close();
-        }
+        keycloak.realms().realm(realmName).roles().create(representation);
+        RoleRepresentation realmRole =  keycloak.realms().realm(realmName).roles().get("user").toRepresentation();
+        keycloak.realms().realm(realmName).users().get(userId).roles().realmLevel().add(Arrays.asList(realmRole));
+        return true;
+
     }
 }

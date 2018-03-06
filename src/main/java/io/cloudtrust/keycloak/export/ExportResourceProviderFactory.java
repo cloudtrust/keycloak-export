@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package io.cloudtrust.keycloak.importexport;
+package io.cloudtrust.keycloak.export;
 
 import org.keycloak.Config.Scope;
 import org.keycloak.models.KeycloakSession;
@@ -26,9 +26,9 @@ import org.keycloak.services.resource.RealmResourceProviderFactory;
 /**
  * @author <a href="mailto:sthorger@redhat.com">Stian Thorgersen</a>
  */
-public class ImportExportResourceProviderFactory implements RealmResourceProviderFactory {
+public class ExportResourceProviderFactory implements RealmResourceProviderFactory {
 
-    public static final String ID = "importexport";
+    public static final String ID = "export";
 
     @Override
     public String getId() {
@@ -37,7 +37,7 @@ public class ImportExportResourceProviderFactory implements RealmResourceProvide
 
     @Override
     public RealmResourceProvider create(KeycloakSession session) {
-        return new ImportExportResourceProvider(session);
+        return new ExportResourceProvider(session);
     }
 
     @Override
