@@ -8,6 +8,9 @@
         <module name="org.keycloak.keycloak-services"/>
         <module name="org.keycloak.keycloak-server-spi"/>
         <module name="org.keycloak.keycloak-server-spi-private"/>
+        <module name="org.keycloak.keycloak-common"/>
+        <module name="javax.ws.rs.api"/>
+        <module name="org.jboss.resteasy.resteasy-jaxrs"/>
         <module name="org.jboss.logging"/>
     </dependencies>
 </module>
