@@ -12,7 +12,7 @@
 
     <properties>
         <version.wildfly>11.0.0.Final</version.wildfly>
-        <version.keycloak>3.4.3.Final</version.keycloak>
+        <version.keycloak>4.5.0.Final</version.keycloak>
 
         <version.wildfly.maven.plugin>1.1.0.Final</version.wildfly.maven.plugin>
         <version.jboss.maven.plugin>7.4.Final</version.jboss.maven.plugin>

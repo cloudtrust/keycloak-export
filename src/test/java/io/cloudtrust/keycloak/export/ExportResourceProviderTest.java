@@ -40,6 +40,7 @@ import java.io.InputStream;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.IntStream;
 
 import static org.hamcrest.CoreMatchers.is;
@@ -130,7 +131,7 @@ public class ExportResourceProviderTest {
             TestsHelper.importTestRealm("admin", "admin", "/"+TEST_REALM_NAME+"-realm.json");
             RealmRepresentation exportedRealm = exportRealm(token, TEST_REALM_NAME);
             Assert.assertEquals(fileRepresentation.getUsers().size(), exportedRealm.getUsers().size());
-            //making sur all users are imported
+            //making sure all users are imported
             IntStream.range(0, fileRepresentation.getUsers().size()).forEach(i->{
                 UserRepresentation fileUser = fileRepresentation.getUsers().get(i);
                 UserRepresentation exportedUser = exportedRealm.getUsers().parallelStream().filter(c->c.getId().equals(fileUser.getId())).findAny().get();
@@ -141,7 +142,7 @@ public class ExportResourceProviderTest {
                     Assert.assertEquals(fileUser.getCredentials().get(0).getHashedSaltedValue(), exportedUser.getCredentials().get(0).getHashedSaltedValue());
                 }
             });
-            //making sur client secrets are well imported and exported
+            //making sure client secrets are well imported and exported
             IntStream.range(0, fileRepresentation.getClients().size()).forEach(i->{
                 ClientRepresentation fileClient = fileRepresentation.getClients().get(i);
                 ClientRepresentation exportedClient = exportedRealm.getClients().parallelStream().filter(c->c.getId().equals(fileClient.getId())).findAny().get();
@@ -156,12 +157,11 @@ public class ExportResourceProviderTest {
                 Assert.assertEquals(fileGroup.getId(), exportedGroup.getId());
                 Assert.assertEquals(fileGroup.getName(), exportedGroup.getName());
             });
-            //realm roles
+            //realm roles (do not compare IDs, as they might be changed by the import mechanism)
             IntStream.range(0, fileRepresentation.getRoles().getRealm().size()).forEach(i->{
                 RoleRepresentation fileRealmRole = fileRepresentation.getRoles().getRealm().get(i);
-                RoleRepresentation exportRealmRole = exportedRealm.getRoles().getRealm().parallelStream().filter(c->c.getId().equals(fileRealmRole.getId())).findAny().get();
-                Assert.assertEquals(fileRealmRole.getId(), exportRealmRole.getId());
-                Assert.assertEquals(fileRealmRole.getName(), exportRealmRole.getName());
+                Optional<RoleRepresentation> exportRealmRoleOpt = exportedRealm.getRoles().getRealm().parallelStream().filter(c->c.getName().equals(fileRealmRole.getName())).findAny();
+                Assert.assertTrue(exportRealmRoleOpt.isPresent());
             });
             //clients roles
             fileRepresentation.getRoles().getClient().keySet().forEach(clientId->{
