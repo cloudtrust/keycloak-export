@@ -2,32 +2,22 @@ package io.cloudtrust.keycloak.export;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.http.HttpEntity;
-import org.apache.http.HttpException;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpResponseException;
 import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.BasicHttpEntity;
-import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
-import org.hamcrest.Matcher;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.container.test.api.RunAsClient;
-import org.jboss.arquillian.container.test.api.TargetsContainer;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.logging.Logger;
-import org.jboss.shrinkwrap.api.Archive;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
-import org.jboss.shrinkwrap.api.spec.JavaArchive;
+import org.jboss.shrinkwrap.api.spec.WebArchive;
 import org.junit.*;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
-//import org.keycloak.admin.client.Keycloak;
 import org.keycloak.admin.client.Keycloak;
-import org.keycloak.admin.client.resource.RealmResource;
 import org.keycloak.representations.idm.*;
 import org.keycloak.services.resource.RealmResourceProviderFactory;
 import org.keycloak.test.TestsHelper;
@@ -37,7 +27,6 @@ import javax.ws.rs.core.Response;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -97,14 +86,13 @@ public class ExportResourceProviderTest {
         }
     }
 
-    @Deployment(name=MODULE_JAR, testable = false)
-    @TargetsContainer("keycloak-remote")
-    public static Archive<?> createProviderArchive() throws IOException {
-        return ShrinkWrap.create(JavaArchive.class, "keycloak-export.jar")
+    @Deployment
+    public static WebArchive deploy() {
+        return ShrinkWrap.create(WebArchive.class, "run-on-server-classes.war")
                 .addClasses(
                         ExportResourceProvider.class,
                         ExportResourceProviderFactory.class)
-                .addAsManifestResource(new File("src/test/resources", "MANIFEST.MF"))
+                .addAsManifestResource(new File("src/test/resources", "manifest.xml"))
                 .addAsServiceProvider(RealmResourceProviderFactory.class, ExportResourceProviderFactory.class);
     }
 
