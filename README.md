@@ -18,7 +18,4 @@ To use this module, the client (i.e. admin-cli) must have full scope allowed in 
 
 ## Testing
 
-For running the tests for this export module, you need to have a separate Keycloak server running on `localhost` with the following characteristics:
-* HTTP Port: `8180`
-* HTTP Management Port: `10090`
-* Admin user: `admin` / `admin`
+Tests run with arquillian, as standard unit tests, similar to what is done on the keycloak project.
