@@ -1,13 +1,9 @@
 package io.cloudtrust.keycloak.export;
 
 import org.jboss.logging.Logger;
-import org.jboss.resteasy.spi.UnauthorizedException;
 import org.keycloak.Config;
 import org.keycloak.common.ClientConnection;
-import org.keycloak.exportimport.ExportImportConfig;
-import org.keycloak.exportimport.Strategy;
 import org.keycloak.exportimport.util.ExportUtils;
-import org.keycloak.exportimport.util.ImportUtils;
 import org.keycloak.jose.jws.JWSInput;
 import org.keycloak.jose.jws.JWSInputException;
 import org.keycloak.models.AdminRoles;
@@ -21,7 +17,6 @@ import org.keycloak.services.managers.AuthenticationManager;
 import org.keycloak.services.managers.RealmManager;
 import org.keycloak.services.resource.RealmResourceProvider;
 import org.keycloak.services.resources.admin.AdminAuth;
-import org.keycloak.services.resources.admin.AdminRoot;
 
 import javax.ws.rs.*;
 import javax.ws.rs.core.*;
@@ -80,25 +75,25 @@ public class ExportResourceProvider implements RealmResourceProvider {
      */
     protected AdminAuth authenticateRealmAdminRequest(HttpHeaders headers, UriInfo uriInfo) {
         String tokenString = authManager.extractAuthorizationHeaderToken(headers);
-        if (tokenString == null) throw new UnauthorizedException("Bearer");
+        if (tokenString == null) throw new NotAuthorizedException("Bearer");
         AccessToken token;
         try {
             JWSInput input = new JWSInput(tokenString);
             token = input.readJsonContent(AccessToken.class);
         } catch (JWSInputException e) {
-            throw new UnauthorizedException("Bearer token format error");
+            throw new NotAuthorizedException("Bearer token format error");
         }
         String realmName = token.getIssuer().substring(token.getIssuer().lastIndexOf('/') + 1);
         RealmManager realmManager = new RealmManager(session);
         RealmModel realm = realmManager.getRealmByName(realmName);
         if (realm == null) {
-            throw new UnauthorizedException("Unknown realm in token");
+            throw new NotAuthorizedException("Unknown realm in token");
         }
         session.getContext().setRealm(realm);
         AuthenticationManager.AuthResult authResult = authManager.authenticateBearerToken(session, realm, uriInfo, clientConnection, headers);
         if (authResult == null) {
             logger.debug("Token not valid");
-            throw new UnauthorizedException("Bearer");
+            throw new NotAuthorizedException("Bearer");
         }
 
         ClientModel client = realm.getClientByClientId(token.getIssuedFor());
