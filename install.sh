@@ -6,6 +6,9 @@
 
 set -e
 
+#TODO: this value can be found in the module.xml in java path format -> get automatically?
+MODULE_PATH="io/cloudtrust/keycloak-export/main"
+
 usage ()
 {
     echo "usage: $0 keycloak_path [-c]"
@@ -81,8 +84,9 @@ Main__main()
     init "$@"
     # install module
     mvn package
-    mkdir $argv__KEYCLOAK/modules/system/layers/$MODULE
-    cp target/$MODULE.jar $argv__KEYCLOAK/modules/system/layers/$MODULE
+    mkdir -p $argv__KEYCLOAK/modules/system/layers/$MODULE/$MODULE_PATH/
+    cp target/$MODULE.jar $argv__KEYCLOAK/modules/system/layers/$MODULE/$MODULE_PATH/
+    cp module.xml $argv__KEYCLOAK/modules/system/layers/$MODULE/$MODULE_PATH/
     sed -i "$ s/$/,$MODULE/" $argv__KEYCLOAK/modules/layers.conf
     xmlstarlet ed -L -N c="urn:jboss:domain:keycloak-server:1.1" -s /_:server/_:profile/c:subsystem/c:providers -t elem -n provider -v "module:io.cloudtrust.keycloak-export" $CONF_FILE
     exit 0
