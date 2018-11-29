@@ -63,7 +63,6 @@ init()
         CONF_FILE=$argv__KEYCLOAK/standalone/configuration/standalone.xml
     fi
     echo $CONF_FILE
-    CONF_FILE=standalone-ha.xml
     MODULE=${PWD##*/}
 }
 
@@ -74,39 +73,6 @@ init_exceptions()
     #Main__Default_Unkown=1
     Main__ParameterException=2
 }
-
-cleanup()
-{
-    #clean dir structure in case of script failure
-    echo "cleanup:"
-}
-
-Main__interruptHandler()
-{
-    # @description signal handler for SIGINT
-    echo "$0: SIGINT caught"
-    exit
-}
-Main__terminationHandler()
-{
-    # @description signal handler for SIGTERM
-    echo "$0: SIGTERM caught"
-    exit
-}
-Main__exitHandler()
-{
-    # @description signal handler for end of the program (clean or unclean).
-    # probably redundant call, we already call the cleanup in main.
-    cleanup
-    if [[ "$EXCEPTION" -ne 0 ]] ; then
-        echo "$0: error : ${EXCEPTION_MSG}"
-    fi
-    exit
-}
-
-trap Main__interruptHandler INT
-trap Main__terminationHandler TERM
-trap Main__exitHandler EXIT
 
 Main__main()
 {
@@ -121,9 +87,6 @@ Main__main()
     xmlstarlet ed -L -N c="urn:jboss:domain:keycloak-server:1.1" -s /_:server/_:profile/c:subsystem/c:providers -t elem -n provider -v "module:io.cloudtrust.keycloak-export" $CONF_FILE
     exit 0
 }
-
-# catch signals and exit
-#trap exit INT TERM EXIT
 
 Main__main "$@"
 
