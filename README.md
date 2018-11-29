@@ -1,12 +1,18 @@
-# Compile
+# Keycloak export Module
 
-You need Java-8-x Java environment:
+This module allows you to perform a full export from the REST-API, while keycloak is still running.
+
+## Install keycloak-export
+
+You need Java-8-x Java environment
+
+### Manually
+Run
+
 ```
 mvn clean install
 ```
-# install keycloak-export
 
-## Manually
 You can deploy as a module by running:
 
     $KEYCLOAK_HOME/bin/jboss-cli.sh --command="module add --name=io.cloudtrust.keycloak-export --resources=target/keycloak-export-0.1-SNAPSHOT.jar --dependencies=org.keycloak.keycloak-core,org.keycloak.keycloak-server-spi,org.keycloak.keycloak-server-spi-private,org.keycloak.keycloak-services,javax.ws.rs.api"
@@ -18,14 +24,14 @@ Then registering the provider by editing `standalone/configuration/standalone.xm
         <provider>module:io.cloudtrust.keycloak-export</provider>
     </providers>
 
-## Automatically
+### Automatically
 
 Simply call the install.sh script with the base directory of Keycloak as parameter.
 
 
 Then start (or restart) the server. To use this module, the client (i.e. admin-cli) must have full scope allowed in the master realm.
 
-# Using the module
+## Using the module
 
 The module is used as for other REST-API endpoints (see [here](https://www.keycloak.org/docs/1.9/server_development_guide/topics/admin-rest-api.html)):
 
