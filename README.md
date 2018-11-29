@@ -1,4 +1,10 @@
-# keycloak-export
+# Compile
+
+You need Java-8-x Java environment:
+```
+mvn clean install
+```
+# install keycloak-export
 
 You can deploy as a module by running:
 
