@@ -4,7 +4,7 @@
 # install keycloak module :
 # keycloak-export
 
-set -e
+set -eE
 
 usage ()
 {
@@ -18,8 +18,9 @@ init()
     [[ $(xmlstarlet --version) ]] || { echo >&2 "Requires xmlstarlet"; exit 1; }
 
     #optional args
-    argv__NOCACHE=0;
-    getopt_results=$(getopt -s bash -o c --long cluster, -- "$@")
+    argv__CLUSTER=0;
+    argv__UNINSTALL=0
+    getopt_results=$(getopt -s bash -o cu --long cluster,uninstall -- "$@")
 
     if test $? != 0
     then
@@ -31,6 +32,11 @@ init()
     while true
     do
         case "$1" in
+            -u|--uninstall)
+                argv__UNINSTALL=1
+                echo "--delete set. will remove plugin"
+                shift
+                ;;
             -c|--cluster)
                 argv__CLUSTER=1
                 echo "--cluster set. Will edit cluster config"
@@ -57,13 +63,12 @@ init()
     argv__KEYCLOAK="$1"
     # optional args
     CONF_FILE=""
-    if [[ "argv_CLUSTER" ]]; then
+    if [[ "$argv__CLUSTER" ]]; then
         CONF_FILE=$argv__KEYCLOAK/standalone/configuration/standalone-ha.xml
     else
         CONF_FILE=$argv__KEYCLOAK/standalone/configuration/standalone.xml
     fi
     echo $CONF_FILE
-    CONF_FILE=standalone-ha.xml
     MODULE=${PWD##*/}
 }
 
@@ -78,7 +83,11 @@ init_exceptions()
 cleanup()
 {
     #clean dir structure in case of script failure
-    echo "cleanup:"
+    echo "cleanup..."
+    xmlstarlet ed -L -N c="urn:jboss:domain:keycloak-server:1.1" -d "/_:server/_:profile/c:subsystem/c:providers/c:provider[text()='module:io.cloudtrust.keycloak-export']" $CONF_FILE
+    sed -i "$ s/,$MODULE$//" $argv__KEYCLOAK/modules/layers.conf
+    rm -rf $argv__KEYCLOAK/modules/system/layers/$MODULE
+    echo "done"
 }
 
 Main__interruptHandler()
@@ -95,8 +104,6 @@ Main__terminationHandler()
 }
 Main__exitHandler()
 {
-    # @description signal handler for end of the program (clean or unclean).
-    # probably redundant call, we already call the cleanup in main.
     cleanup
     if [[ "$EXCEPTION" -ne 0 ]] ; then
         echo "$0: error : ${EXCEPTION_MSG}"
@@ -106,18 +113,25 @@ Main__exitHandler()
 
 trap Main__interruptHandler INT
 trap Main__terminationHandler TERM
-trap Main__exitHandler EXIT
+trap Main__exitHandler ERR
 
 Main__main()
 {
     # init scipt temporals
     init_exceptions
     init "$@"
+    if [[ "$argv__UNINSTALL" -eq 1 ]]; then
+        cleanup
+        exit 0
+    fi
     # install module
     mvn package
-    mkdir $argv__KEYCLOAK/modules/system/layers/$MODULE
+    mkdir -p $argv__KEYCLOAK/modules/system/layers/$MODULE
     cp target/$MODULE.jar $argv__KEYCLOAK/modules/system/layers/$MODULE
-    sed -i "$ s/$/,$MODULE/" $argv__KEYCLOAK/modules/layers.conf
+    if ! grep -q "$MODULE" "$argv__KEYCLOAK/modules/layers.conf"; then
+        sed -i "$ s/$/,$MODULE/" $argv__KEYCLOAK/modules/layers.conf
+    fi
+    # FIXME make this reentrant then test
     xmlstarlet ed -L -N c="urn:jboss:domain:keycloak-server:1.1" -s /_:server/_:profile/c:subsystem/c:providers -t elem -n provider -v "module:io.cloudtrust.keycloak-export" $CONF_FILE
     exit 0
 }
