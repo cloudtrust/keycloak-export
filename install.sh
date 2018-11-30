@@ -72,6 +72,7 @@ init()
     echo $CONF_FILE
     MODULE=${PWD##*/}
     MODULE_PATH=$(xmlstarlet sel -N oe="urn:jboss:module:1.3" -t -v '/oe:module/@name' -n module.xml)
+    MODULE_PATH=${MODULE_PATH//./\/}/main
 }
 
 init_exceptions()
