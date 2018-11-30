@@ -64,7 +64,7 @@ init()
     argv__KEYCLOAK="$1"
     # optional args
     CONF_FILE=""
-    if [[ "$argv__CLUSTER" ]]; then
+    if [[ "$argv__CLUSTER" -eq 1 ]]; then
         CONF_FILE=$argv__KEYCLOAK/standalone/configuration/standalone-ha.xml
     else
         CONF_FILE=$argv__KEYCLOAK/standalone/configuration/standalone.xml
