@@ -128,7 +128,6 @@ Main__main()
         exit 0
     fi
     # install module
-    mvn package
     mkdir -p $argv__KEYCLOAK/modules/system/layers/$MODULE/$MODULE_PATH/
     cp target/$MODULE.jar $argv__KEYCLOAK/modules/system/layers/$MODULE/$MODULE_PATH/
     cp module.xml $argv__KEYCLOAK/modules/system/layers/$MODULE/$MODULE_PATH/
