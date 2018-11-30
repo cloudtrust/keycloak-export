@@ -1,4 +1,17 @@
-# keycloak-export
+# Keycloak export Module
+
+This module allows you to perform a full export from the REST-API, while keycloak is still running.
+
+## Install keycloak-export
+
+You need Java-8-x Java environment
+
+### Manually
+Run
+
+```
+mvn clean install
+```
 
 You can deploy as a module by running:
 
@@ -11,10 +24,39 @@ Then registering the provider by editing `standalone/configuration/standalone.xm
         <provider>module:io.cloudtrust.keycloak-export</provider>
     </providers>
 
-Then start (or restart) the server. Once started open http://localhost:8080/auth/realms/master/export/realm and you should see a json with the exported content.
+### Automatically
+
+Simply call the install.sh script with the base directory of Keycloak as parameter.
+
+
+Then start (or restart) the server. To use this module, the client (i.e. admin-cli) must have full scope allowed in the master realm.
+
+## Using the module
+
+The module is used as for other REST-API endpoints (see [here](https://www.keycloak.org/docs/1.9/server_development_guide/topics/admin-rest-api.html)):
+
+1) Call the api to get an access token
+
+```
+curl \
+  -d "client_id=admin-cli" \
+  -d "username=admin" \
+  -d "password=password" \
+  -d "grant_type=password" \
+  "http://localhost:8080/auth/realms/master/protocol/openid-connect/token"
+```
+
+Then call the `http://localhost:8080/auth/realms/master/export/realm` endpoint, using the token
+
+```
+curl \
+  -H "Authorization: bearer eyJhbGciOiJSUz..." \
+  "http://localhost:8080/auth/realms/master/export/realm"
+```
+
+You should see a json with the exported content.
 You can also invoke the endpoint for other realms by replacing `master` with the realm name in the above url.
 
-To use this module, the client (i.e. admin-cli) must have full scope allowed in the master realm.
 
 ## Testing
 
