@@ -6,6 +6,7 @@
 
 set -eE
 
+
 usage ()
 {
     echo "usage: $0 keycloak_path [-c]"
@@ -70,6 +71,7 @@ init()
     fi
     echo $CONF_FILE
     MODULE=${PWD##*/}
+    MODULE_PATH=$(xmlstarlet sel -N oe="urn:jboss:module:1.3" -t -v '/oe:module/@name' -n module.xml)
 }
 
 init_exceptions()
@@ -126,8 +128,9 @@ Main__main()
     fi
     # install module
     mvn package
-    mkdir -p $argv__KEYCLOAK/modules/system/layers/$MODULE
-    cp target/$MODULE.jar $argv__KEYCLOAK/modules/system/layers/$MODULE
+    mkdir -p $argv__KEYCLOAK/modules/system/layers/$MODULE/$MODULE_PATH/
+    cp target/$MODULE.jar $argv__KEYCLOAK/modules/system/layers/$MODULE/$MODULE_PATH/
+    cp module.xml $argv__KEYCLOAK/modules/system/layers/$MODULE/$MODULE_PATH/
     if ! grep -q "$MODULE" "$argv__KEYCLOAK/modules/layers.conf"; then
         sed -i "$ s/$/,$MODULE/" $argv__KEYCLOAK/modules/layers.conf
     fi
@@ -135,9 +138,6 @@ Main__main()
     xmlstarlet ed -L -N c="urn:jboss:domain:keycloak-server:1.1" -s /_:server/_:profile/c:subsystem/c:providers -t elem -n provider -v "module:io.cloudtrust.keycloak-export" $CONF_FILE
     exit 0
 }
-
-# catch signals and exit
-#trap exit INT TERM EXIT
 
 Main__main "$@"
 
