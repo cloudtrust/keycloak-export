@@ -4,14 +4,15 @@ This module allows you to perform a full export from the REST-API, while keycloa
 
 ## Install keycloak-export
 
-You need Java-8-x Java environment
+You need Java-8-x Java environment. To build, you must have the keycloak test artifacts in one of your repositories. This can be done by dowloading the keycloak source, and building it as recommended on their [webpage](https://github.com/keycloak/keycloak).
 
-### Manually
 Run
 
 ```
 mvn clean install
 ```
+
+### Deploy manually
 
 You can deploy as a module by running:
 
@@ -24,7 +25,7 @@ Then registering the provider by editing `standalone/configuration/standalone.xm
         <provider>module:io.cloudtrust.keycloak-export</provider>
     </providers>
 
-### Automatically
+### Deploy automatically
 
 Simply call the install.sh script with the base directory of Keycloak as parameter.
 
