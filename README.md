@@ -2,9 +2,13 @@
 
 This module allows you to perform a full export from the REST-API, while keycloak is still running.
 
+This version currently works with keycloak 4.6.0.Final.
+
 ## Install keycloak-export
 
-You need Java-8-x Java environment. To build, you must have the keycloak test artifacts in one of your repositories. This can be done by dowloading the keycloak source, and building it as recommended on their [webpage](https://github.com/keycloak/keycloak).
+You need Java-8-x Java environment. To build, you must have the keycloak test artifacts in one of your repositories. 
+This can be done by dowloading the keycloak source, and building it as recommended on their [webpage](https://github.com/keycloak/keycloak).
+Make sure that you build the tag 4.6.0.Final.
 
 Run
 
