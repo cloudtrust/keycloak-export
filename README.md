@@ -31,10 +31,7 @@ Then registering the provider by editing `standalone/configuration/standalone.xm
 
 ### Deploy automatically
 
-Simply call the install.sh script with the base directory of keycloak as parameter.
-
-
-Then start (or restart) the server. To use this module, the client (i.e. admin-cli) must have full scope allowed in the master realm.
+Simply call the install.sh script with the base directory of keycloak as parameter. Then start (or restart) the server.
 
 ## Using the module
 
