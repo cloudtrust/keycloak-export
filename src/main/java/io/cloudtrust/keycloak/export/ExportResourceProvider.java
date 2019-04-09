@@ -2,6 +2,7 @@ package io.cloudtrust.keycloak.export;
 
 import org.jboss.logging.Logger;
 import org.keycloak.Config;
+import org.keycloak.authentication.AuthenticatorUtil;
 import org.keycloak.common.ClientConnection;
 import org.keycloak.exportimport.util.ExportUtils;
 import org.keycloak.jose.jws.JWSInput;
@@ -17,6 +18,7 @@ import org.keycloak.services.managers.AuthenticationManager;
 import org.keycloak.services.managers.RealmManager;
 import org.keycloak.services.resource.RealmResourceProvider;
 import org.keycloak.services.resources.admin.AdminAuth;
+import org.keycloak.services.resources.admin.permissions.AdminPermissions;
 
 import javax.ws.rs.*;
 import javax.ws.rs.core.*;
@@ -53,11 +55,9 @@ public class ExportResourceProvider implements RealmResourceProvider {
         //retrieving the realm should be done before authentication
         // authentication overrides the value with master inside the context
         // this is done this way to avoid changing the copied code below (authenticateRealmAdminRequest)
-        String name = session.getContext().getRealm().getName();
-        RealmModel realm = session.realms().getRealmByName(name);
-        if (realm == null) throw new NotFoundException("Realm not found.");
+        RealmModel realm = session.getContext().getRealm();
         AdminAuth adminAuth = authenticateRealmAdminRequest(headers, uriInfo);
-        if(isMasterAdmin(adminAuth)){
+        if(AdminPermissions.realms(session, adminAuth).isAdmin()){
             return ExportUtils.exportRealm(session, realm, true, true);
         } else {
             throw new ForbiddenException();
@@ -104,10 +104,4 @@ public class ExportResourceProvider implements RealmResourceProvider {
 
         return new AdminAuth(realm, authResult.getToken(), authResult.getUser(), client);
     }
-
-    private boolean isMasterAdmin(AdminAuth auth){
-        return Config.getAdminRealm().equals(auth.getRealm().getName()) &&
-                auth.hasRealmRole(AdminRoles.ADMIN);
-    }
-
 }

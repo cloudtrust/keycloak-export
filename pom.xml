@@ -482,6 +482,7 @@
                 <configuration>
                     <systemPropertyVariables>
                         <arquillian.xml>src/test/resources/arquillian.xml</arquillian.xml>
+                        <log4j.configuration>file:${project.build.directory}/test-classes/log4j.properties</log4j.configuration>
                     </systemPropertyVariables>
                     <properties>
                         <property>

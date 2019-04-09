@@ -57,11 +57,6 @@ public class ExportResourceProviderTest {
         Keycloak keycloak = Keycloak.getInstance(TestsHelper.keycloakBaseUrl, "master", "admin", "admin", CLIENT);
         clientBeforeChanges=keycloak.realms().realm("master").clients().findByClientId(CLIENT).get(0);
         createTestUser("admin", "admin", "master", TEST_USER, "password");
-        if(!clientBeforeChanges.isFullScopeAllowed()){
-            ClientRepresentation modifiedClient= keycloak.realms().realm("master").clients().get(clientBeforeChanges.getId()).toRepresentation();
-            modifiedClient.setFullScopeAllowed(true);
-            keycloak.realms().realm("master").clients().get(clientBeforeChanges.getId()).update(modifiedClient);
-        }
         //just making sure realm is not already present
         String token=keycloak.tokenManager().getAccessTokenString();
         RealmRepresentation nullRealm=null;
