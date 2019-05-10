@@ -365,19 +365,6 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- coverage -->
-        <dependency>
-            <groupId>org.jacoco</groupId>
-            <artifactId>org.jacoco.core</artifactId>
-            <version>0.8.3</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.jboss.arquillian.extension</groupId>
-            <artifactId>arquillian-jacoco</artifactId>
-            <version>1.0.0.Alpha10</version>
-            <scope>test</scope>
-        </dependency>
     </dependencies>
 
     <build>
@@ -499,7 +486,6 @@
                 <configuration>
                     <effort>Max</effort>
                     <threshold>Low</threshold>
-                    <failOnError>true</failOnError>
                     <plugins>
                         <plugin>
                             <groupId>com.mebigfatguy.fb-contrib</groupId>
