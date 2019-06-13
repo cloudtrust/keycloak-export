@@ -2,13 +2,13 @@
 
 This module allows you to perform a full export from the REST-API, while keycloak is still running.
 
-This version currently works with keycloak 4.8.3.Final.
+This version currently works with keycloak 6.0.1.
 
 ## Install keycloak-export
 
 You need Java-8-x Java environment. To build, you must have the keycloak test artifacts in one of your repositories.
 This can be done by downloading the keycloak source, and building it as recommended on their [webpage](https://github.com/keycloak/keycloak).
-Make sure that you build the tag 4.8.3.Final.
+Make sure that you build the tag 6.0.1.
 
 Run
 
@@ -20,7 +20,7 @@ mvn clean install
 
 You can deploy as a module by running:
 
-    $KEYCLOAK_HOME/bin/jboss-cli.sh --command="module add --name=io.cloudtrust.keycloak-export --resources=target/keycloak-export-0.1-SNAPSHOT.jar --dependencies=org.keycloak.keycloak-core,org.keycloak.keycloak-server-spi,org.keycloak.keycloak-server-spi-private,org.keycloak.keycloak-services,javax.ws.rs.api"
+    $KEYCLOAK_HOME/bin/jboss-cli.sh --command="module add --name=io.cloudtrust.keycloak-export --resources=target/keycloak-export-6.0.1.jar --dependencies=org.keycloak.keycloak-core,org.keycloak.keycloak-server-spi,org.keycloak.keycloak-server-spi-private,org.keycloak.keycloak-services,javax.ws.rs.api"
 
 Then registering the provider by editing `standalone/configuration/standalone.xml` and adding the module to the provider's element list:
 
