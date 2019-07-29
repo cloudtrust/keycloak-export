@@ -12,38 +12,44 @@
     <parent>
         <groupId>org.keycloak.testsuite</groupId>
         <artifactId>integration-arquillian-tests</artifactId>
-        <version>4.8.3.Final</version>
+        <version>6.0.1</version>
     </parent>
+
+    <properties>
+        <auth.server.http.port>8180</auth.server.http.port>
+        <keycloak.version>6.0.1</keycloak.version>
+        <jackson.version>2.9.9</jackson.version>
+    </properties>
 
     <dependencies>
         <dependency>
             <groupId>org.keycloak</groupId>
             <artifactId>keycloak-core</artifactId>
-            <version>${project.version}</version>
+            <version>${keycloak.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.keycloak</groupId>
             <artifactId>keycloak-common</artifactId>
-            <version>${project.version}</version>
+            <version>${keycloak.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.keycloak</groupId>
             <artifactId>keycloak-server-spi</artifactId>
-            <version>${project.version}</version>
+            <version>${keycloak.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.keycloak</groupId>
             <artifactId>keycloak-server-spi-private</artifactId>
-            <version>${project.version}</version>
+            <version>${keycloak.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.keycloak</groupId>
             <artifactId>keycloak-services</artifactId>
-            <version>${project.version}</version>
+            <version>${keycloak.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -62,7 +68,7 @@
         <dependency>
             <groupId>org.keycloak</groupId>
             <artifactId>keycloak-test-helper</artifactId>
-            <version>${project.version}</version>
+            <version>${keycloak.version}</version>
             <scope>test</scope>
         </dependency>
         <!--arquillian-->
@@ -143,14 +149,14 @@
         <dependency>
             <groupId>org.keycloak.testsuite</groupId>
             <artifactId>integration-arquillian-test-apps-servlets</artifactId>
-            <version>${project.version}</version>
+            <version>${keycloak.version}</version>
             <scope>test</scope>
         </dependency>
 
         <dependency>
             <groupId>org.keycloak.testsuite</groupId>
             <artifactId>integration-arquillian-util</artifactId>
-            <version>${project.version}</version>
+            <version>${keycloak.version}</version>
             <scope>test</scope>
         </dependency>
 
@@ -251,7 +257,7 @@
         <dependency>
             <groupId>org.keycloak.testsuite</groupId>
             <artifactId>integration-arquillian-servers-auth-server-undertow</artifactId>
-            <version>${project.version}</version>
+            <version>${keycloak.version}</version>
             <scope>test</scope>
         </dependency>
 
@@ -285,16 +291,19 @@
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-core</artifactId>
+            <version>${jackson.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
+            <version>${jackson.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-annotations</artifactId>
+            <version>${jackson.version}</version>
             <scope>test</scope>
         </dependency>
 
@@ -361,7 +370,7 @@
         <dependency>
             <groupId>org.keycloak.testsuite</groupId>
             <artifactId>integration-arquillian-tests-base</artifactId>
-            <version>${project.version}</version>
+            <version>${keycloak.version}</version>
             <scope>test</scope>
         </dependency>
 
@@ -473,7 +482,7 @@
                             <properties>
                                 <property>
                                     <name>listener</name>
-                                    <value>io.cloudtrust.keycloak.util.DummyListener</value>
+                                    <value>org.junit.runner.notification.RunListener</value>
                                 </property>
                             </properties>
                         </configuration>
@@ -487,7 +496,7 @@
                     <properties>
                         <property>
                             <name>listener</name>
-                            <value>io.cloudtrust.keycloak.util.DummyListener</value>
+                            <value>org.junit.runner.notification.RunListener</value>
                         </property>
                     </properties>
                     <argLine>${argLine}</argLine>
