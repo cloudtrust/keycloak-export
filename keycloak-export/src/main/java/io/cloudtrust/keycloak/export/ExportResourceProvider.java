@@ -5,11 +5,16 @@ import io.cloudtrust.keycloak.export.dto.BetterRealmRepresentation;
 import org.jboss.logging.Logger;
 import org.keycloak.common.ClientConnection;
 import org.keycloak.credential.CredentialModel;
-import org.keycloak.exportimport.Strategy;
 import org.keycloak.exportimport.util.ExportUtils;
 import org.keycloak.jose.jws.JWSInput;
 import org.keycloak.jose.jws.JWSInputException;
-import org.keycloak.models.*;
+import org.keycloak.models.AdminRoles;
+import org.keycloak.models.ClientModel;
+import org.keycloak.models.KeycloakSession;
+import org.keycloak.models.ModelDuplicateException;
+import org.keycloak.models.RealmModel;
+import org.keycloak.models.RoleModel;
+import org.keycloak.models.UserModel;
 import org.keycloak.policy.PasswordPolicyNotMetException;
 import org.keycloak.representations.AccessToken;
 import org.keycloak.representations.idm.CredentialRepresentation;
@@ -26,8 +31,18 @@ import org.keycloak.services.resources.admin.AdminRoot;
 import org.keycloak.services.resources.admin.permissions.AdminPermissionEvaluator;
 import org.keycloak.services.resources.admin.permissions.AdminPermissions;
 
-import javax.ws.rs.*;
-import javax.ws.rs.core.*;
+import javax.ws.rs.ForbiddenException;
+import javax.ws.rs.GET;
+import javax.ws.rs.NotAuthorizedException;
+import javax.ws.rs.NotFoundException;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.HttpHeaders;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.UriInfo;
 import java.net.URI;
 import java.util.HashMap;
 import java.util.List;
@@ -174,7 +189,7 @@ public class ExportResourceProvider implements RealmResourceProvider {
             grantPermissionsToRealmCreator(auth, realm);
 
             URI location = AdminRoot.realmsUrl(session.getContext().getUri()).path(realm.getName()).build();
-            logger.debugv("imported realm success, sending back: {0}", location.toString());
+            logger.debugv("imported realm success, sending back: {0}", location);
 
             return Response.created(location).build();
         } catch (ModelDuplicateException e) {
