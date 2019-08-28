@@ -1,5 +1,6 @@
 package io.cloudtrust.keycloak.export;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
@@ -28,6 +29,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -67,7 +69,7 @@ public class ExportResourceProviderTest {
     public static void initRealmAndUsers() throws IOException {
         Keycloak keycloak = Keycloak.getInstance(KEYCLOAK_URL, "master", "admin", "admin", CLIENT);
         clientBeforeChanges = keycloak.realms().realm("master").clients().findByClientId(CLIENT).get(0);
-        createTestUser("admin", "admin", "master", TEST_USER, "password");
+        createTestUser("admin", "admin", "master", TEST_USER, "password", "user");
         //just making sure realm is not already present
         String token = keycloak.tokenManager().getAccessTokenString();
         RealmRepresentation nullRealm = null;
@@ -175,12 +177,44 @@ public class ExportResourceProviderTest {
     }
 
     @Test
-    public void nonAdminCantExport() throws IOException {
+    public void nonAdminCantExportMaster() throws IOException {
         Keycloak keycloak = Keycloak.getInstance(KEYCLOAK_URL, "master", TEST_USER, "password", CLIENT);
         String token = keycloak.tokenManager().getAccessTokenString();
         expectedEx.expect(HttpResponseException.class);
         expectedEx.expect(hasProperty("statusCode", is(403)));
         exportRealm(token, "master");
+    }
+
+    @Test
+    public void nonMasterAdminCantExportMaster() throws IOException {
+        try {
+            final String testAdminUser = "test.admin";
+            TestsHelper.importTestRealm("admin", "admin", "/" + TEST_REALM_NAME + "-realm.json");
+            createTestUser("admin", "admin", TEST_REALM_NAME, testAdminUser, "password", "user", "admin");
+            Keycloak keycloak = Keycloak.getInstance(KEYCLOAK_URL, TEST_REALM_NAME, testAdminUser, "password", CLIENT);
+            String token = keycloak.tokenManager().getAccessTokenString();
+            expectedEx.expect(HttpResponseException.class);
+            expectedEx.expect(hasProperty("statusCode", is(403)));
+            exportRealm(token, "master");
+        } finally {
+            TestsHelper.deleteRealm("admin", "admin", TEST_REALM_NAME);
+        }
+    }
+
+    @Test
+    public void nonMasterAdminCantExportTestRealm() throws IOException {
+        try {
+            final String testAdminUser = "test.admin";
+            TestsHelper.importTestRealm("admin", "admin", "/" + TEST_REALM_NAME + "-realm.json");
+            createTestUser("admin", "admin", TEST_REALM_NAME, testAdminUser, "password", "user", "admin");
+            Keycloak keycloak = Keycloak.getInstance(KEYCLOAK_URL, TEST_REALM_NAME, testAdminUser, "password", CLIENT);
+            String token = keycloak.tokenManager().getAccessTokenString();
+            expectedEx.expect(HttpResponseException.class);
+            expectedEx.expect(hasProperty("statusCode", is(403)));
+            exportRealm(token, TEST_REALM_NAME);
+        } finally {
+            TestsHelper.deleteRealm("admin", "admin", TEST_REALM_NAME);
+        }
     }
 
 
@@ -204,7 +238,7 @@ public class ExportResourceProviderTest {
             }
             HttpEntity entity = response.getEntity();
             InputStream is = entity.getContent();
-            ObjectMapper mapper = new ObjectMapper();
+            ObjectMapper mapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
             try {
                 return mapper.readValue(is, RealmRepresentation.class);
             } finally {
@@ -216,16 +250,27 @@ public class ExportResourceProviderTest {
     }
 
     //TODO replace this with TestsHelper.createTestUser once issue KEYCLOAK-6807 is resolved
-    private static boolean createTestUser(String username, String password, String realmName, String newUsername, String newPassword) throws IOException {
+    private static void createTestUser(String username, String password, String realmName, String newUsername, String newPassword, String... roles) throws IOException {
         Keycloak keycloak = Keycloak.getInstance(
                 KEYCLOAK_URL,
                 "master",
                 username,
                 password,
                 CLIENT);
+
+        //add roles
+        for (String role : roles) {
+            RoleRepresentation representation = new RoleRepresentation();
+            representation.setName(role);
+            if (!keycloak.realms().realm(realmName).roles().list().contains(role)) {
+                keycloak.realms().realm(realmName).roles().create(representation);
+            }
+        }
+
         UserRepresentation userRepresentation = new UserRepresentation();
         userRepresentation.setUsername(newUsername);
         userRepresentation.setEnabled(Boolean.TRUE);
+        userRepresentation.setRealmRoles(Arrays.asList(roles));
         Response response = keycloak.realms().realm(realmName).users().create(userRepresentation);
         String userId = TestsHelper.getCreatedId(response);
         response.close();
@@ -234,14 +279,5 @@ public class ExportResourceProviderTest {
         rep.setValue(newPassword);
         rep.setTemporary(false);
         keycloak.realms().realm(realmName).users().get(userId).resetPassword(rep);
-        //add roles
-        RoleRepresentation representation = new RoleRepresentation();
-        representation.setName("user");
-
-        keycloak.realms().realm(realmName).roles().create(representation);
-        RoleRepresentation realmRole = keycloak.realms().realm(realmName).roles().get("user").toRepresentation();
-        keycloak.realms().realm(realmName).users().get(userId).roles().realmLevel().add(Arrays.asList(realmRole));
-        return true;
-
     }
 }
