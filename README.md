@@ -58,6 +58,7 @@ curl \
 
 You should see a JSON with the exported content.
 You can also invoke the endpoint for other realms by replacing `master` with the realm name in the above URL.
+Note that only an admin user in the master realm can call functions from this module.
 
 
 ## Testing

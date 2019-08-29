@@ -1,9 +1,10 @@
 package io.cloudtrust.keycloak.export;
 
+import io.cloudtrust.keycloak.export.dto.BetterCredentialRepresentation;
 import org.jboss.logging.Logger;
-import org.keycloak.Config;
-import org.keycloak.authentication.AuthenticatorUtil;
 import org.keycloak.common.ClientConnection;
+import org.keycloak.common.util.Base64;
+import org.keycloak.credential.CredentialModel;
 import org.keycloak.exportimport.util.ExportUtils;
 import org.keycloak.jose.jws.JWSInput;
 import org.keycloak.jose.jws.JWSInputException;
@@ -11,17 +12,26 @@ import org.keycloak.models.AdminRoles;
 import org.keycloak.models.ClientModel;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.RealmModel;
+import org.keycloak.models.RoleModel;
+import org.keycloak.models.UserModel;
 import org.keycloak.representations.AccessToken;
+import org.keycloak.representations.idm.CredentialRepresentation;
 import org.keycloak.representations.idm.RealmRepresentation;
+import org.keycloak.representations.idm.UserRepresentation;
 import org.keycloak.services.managers.AppAuthManager;
 import org.keycloak.services.managers.AuthenticationManager;
 import org.keycloak.services.managers.RealmManager;
 import org.keycloak.services.resource.RealmResourceProvider;
 import org.keycloak.services.resources.admin.AdminAuth;
+import org.keycloak.services.resources.admin.permissions.AdminPermissionEvaluator;
 import org.keycloak.services.resources.admin.permissions.AdminPermissions;
 
 import javax.ws.rs.*;
 import javax.ws.rs.core.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * ExportResourceProvider exposes two endpoints to import and export realms
@@ -57,11 +67,65 @@ public class ExportResourceProvider implements RealmResourceProvider {
         // this is done this way to avoid changing the copied code below (authenticateRealmAdminRequest)
         RealmModel realm = session.getContext().getRealm();
         AdminAuth adminAuth = authenticateRealmAdminRequest(headers, uriInfo);
-        if(AdminPermissions.realms(session, adminAuth).isAdmin()){
-            return ExportUtils.exportRealm(session, realm, true, true);
+        RealmManager realmManager = new RealmManager(session);
+        RoleModel roleModel = adminAuth.getRealm().getRole(AdminRoles.ADMIN);
+        AdminPermissionEvaluator realmAuth = AdminPermissions.evaluator(session, realm, adminAuth);
+        if(roleModel != null && adminAuth.getUser().hasRole(roleModel)
+                && adminAuth.getRealm().equals(realmManager.getKeycloakAdminstrationRealm())
+                && realmAuth.realm().canManageRealm()){
+            RealmRepresentation realmRep = ExportUtils.exportRealm(session, realm, true, true);
+            //correct users
+            if (realmRep.getUsers() != null) {
+                setCorrectCredentials(realmRep.getUsers(), realm);
+            }
+            return realmRep;
         } else {
             throw new ForbiddenException();
         }
+    }
+
+    /**
+     * This method rewrites the credential list for the users, including the Id (which is missing by default).
+     * Unfortunately, due to the limitations in the keycloak API, there is no way to unit test this.
+     * @param users The user representations to correct
+     * @param realm the realm being exported
+     */
+    private void setCorrectCredentials(List <UserRepresentation> users, RealmModel realm) {
+        Map<String, UserRepresentation> userRepMap = new HashMap<>();
+        for (UserRepresentation userRep : users) {
+            userRepMap.put(userRep.getId(), userRep);
+        }
+
+        for (UserModel user : session.users().getUsers(realm, true)) {
+            // Credentials
+            List<CredentialModel> creds = session.userCredentialManager().getStoredCredentials(realm, user);
+            List<CredentialRepresentation> credReps = new ArrayList<CredentialRepresentation>();
+            for (CredentialModel cred : creds) {
+                CredentialRepresentation credRep = exportCredential(cred);
+                credReps.add(credRep);
+            }
+            UserRepresentation userRep = userRepMap.get(user.getId());
+            if (userRep != null) {
+                userRep.setCredentials(credReps);
+            }
+        }
+    }
+
+    private BetterCredentialRepresentation exportCredential(CredentialModel userCred){
+        BetterCredentialRepresentation credRep = new BetterCredentialRepresentation();
+        credRep.setId(userCred.getId());
+        credRep.setType(userCred.getType());
+        credRep.setDevice(userCred.getDevice());
+        credRep.setHashedSaltedValue(userCred.getValue());
+        if (userCred.getSalt() != null) credRep.setSalt(Base64.encodeBytes(userCred.getSalt()));
+        credRep.setHashIterations(userCred.getHashIterations());
+        credRep.setCounter(userCred.getCounter());
+        credRep.setAlgorithm(userCred.getAlgorithm());
+        credRep.setDigits(userCred.getDigits());
+        credRep.setCreatedDate(userCred.getCreatedDate());
+        credRep.setConfig(userCred.getConfig());
+        credRep.setPeriod(userCred.getPeriod());
+        return credRep;
     }
 
     @Override
