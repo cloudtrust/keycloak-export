@@ -11,13 +11,13 @@ import org.apache.http.impl.client.HttpClientBuilder;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.container.test.api.RunAsClient;
 import org.jboss.arquillian.junit.Arquillian;
-import org.jboss.logging.Logger;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
 import org.junit.*;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.keycloak.admin.client.Keycloak;
+import org.keycloak.admin.client.resource.RolesResource;
 import org.keycloak.representations.idm.*;
 import org.keycloak.services.resource.RealmResourceProviderFactory;
 import org.keycloak.test.FluentTestsHelper;
@@ -29,7 +29,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -41,8 +40,6 @@ import static org.hamcrest.Matchers.hasProperty;
 @RunWith(Arquillian.class)
 @RunAsClient
 public class ExportResourceProviderTest {
-
-    protected static final Logger logger = Logger.getLogger(ExportResourceProviderTest.class);
 
     private static final String KEYCLOAK_URL = getKeycloakUrl();
     private static final String CLIENT = "admin-cli";
@@ -113,7 +110,7 @@ public class ExportResourceProviderTest {
         Assert.assertNotNull(realmRepresentation);
         Assert.assertEquals("master", realmRepresentation.getRealm());
         Assert.assertTrue(realmRepresentation.getUsers().stream().anyMatch(ur -> ur.getUsername().equals("admin")));
-        Assert.assertTrue(realmRepresentation.getClients().size() > 0);
+        Assert.assertFalse(realmRepresentation.getClients().isEmpty());
     }
 
     @Test
@@ -262,8 +259,9 @@ public class ExportResourceProviderTest {
         for (String role : roles) {
             RoleRepresentation representation = new RoleRepresentation();
             representation.setName(role);
-            if (!keycloak.realms().realm(realmName).roles().list().contains(role)) {
-                keycloak.realms().realm(realmName).roles().create(representation);
+            RolesResource realmsRoles = keycloak.realms().realm(realmName).roles();
+            if (realmsRoles.list().stream().map(RoleRepresentation::getName).noneMatch(role::equals)) {
+                realmsRoles.create(representation);
             }
         }
 

@@ -71,8 +71,8 @@ init()
     fi
     echo $CONF_FILE
     MODULE=${PWD##*/}
-    MODULE_PATH=$(xmlstarlet sel -N oe="urn:jboss:module:1.3" -t -v '/oe:module/@name' -n module.xml)
-    MODULE_PATH=${MODULE_PATH//./\/}/main
+    MODULE_NAME=$(xmlstarlet sel -N oe="urn:jboss:module:1.3" -t -v '/oe:module/@name' -n module.xml)
+    MODULE_PATH=${MODULE_NAME//./\/}/main
 }
 
 init_exceptions()
@@ -88,6 +88,7 @@ cleanup()
     #clean dir structure in case of script failure
     echo "cleanup..."
     xmlstarlet ed -L -N c="urn:jboss:domain:keycloak-server:1.1" -d "/_:server/_:profile/c:subsystem/c:providers/c:provider[text()='module:io.cloudtrust.keycloak-export']" $CONF_FILE
+    xmlstarlet ed -L -N c="urn:jboss:domain:keycloak-server:1.1" -d "/_:server/_:profile/c:subsystem/c:theme/c:modules/c:module[text()='$MODULE_NAME']" $CONF_FILE
     sed -i "$ s/,$MODULE$//" $argv__KEYCLOAK/modules/layers.conf
     rm -rf $argv__KEYCLOAK/modules/system/layers/$MODULE
     echo "done"
@@ -136,6 +137,12 @@ Main__main()
     fi
     # FIXME make this reentrant then test
     xmlstarlet ed -L -N c="urn:jboss:domain:keycloak-server:1.1" -s /_:server/_:profile/c:subsystem/c:providers -t elem -n provider -v "module:io.cloudtrust.keycloak-export" $CONF_FILE
+    MODULES_EXISTS=`xmlstarlet sel -N c="urn:jboss:domain:keycloak-server:1.1" -t -v "count(/_:server/_:profile/c:subsystem/c:theme/c:modules/c:module)" $CONF_FILE`
+        if [ $MODULES_EXISTS -eq "0" ]; then
+            xmlstarlet ed -L -N c="urn:jboss:domain:keycloak-server:1.1" -d /_:server/_:profile/c:subsystem/c:theme/c:modules $CONF_FILE
+            xmlstarlet ed -L -N c="urn:jboss:domain:keycloak-server:1.1" -s /_:server/_:profile/c:subsystem/c:theme -t elem -n modules $CONF_FILE
+        fi
+    xmlstarlet ed -L -N c="urn:jboss:domain:keycloak-server:1.1" -s /_:server/_:profile/c:subsystem/c:theme/c:modules -t elem -n module -v "$MODULE_NAME" $CONF_FILE
     exit 0
 }
 
