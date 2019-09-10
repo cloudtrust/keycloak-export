@@ -18,6 +18,7 @@ import org.junit.*;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.keycloak.admin.client.Keycloak;
+import org.keycloak.admin.client.resource.RolesResource;
 import org.keycloak.representations.idm.*;
 import org.keycloak.services.resource.RealmResourceProviderFactory;
 import org.keycloak.test.FluentTestsHelper;
@@ -29,7 +30,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -135,7 +135,7 @@ public class ExportResourceProviderTest {
                 Assert.assertEquals(fileUser.getCredentials(), exportedUser.getCredentials());
                 //making sure credentials are imported
                 if (fileUser.getCredentials() != null && !fileUser.getCredentials().isEmpty()) {
-                    Assert.assertEquals(fileUser.getCredentials().get(0).getHashedSaltedValue(), exportedUser.getCredentials().get(0).getHashedSaltedValue());
+                    Assert.assertEquals(fileUser.getCredentials().get(0).getSecretData(), exportedUser.getCredentials().get(0).getSecretData());
                 }
             });
             //making sure client secrets are well imported and exported
@@ -262,8 +262,9 @@ public class ExportResourceProviderTest {
         for (String role : roles) {
             RoleRepresentation representation = new RoleRepresentation();
             representation.setName(role);
-            if (!keycloak.realms().realm(realmName).roles().list().contains(role)) {
-                keycloak.realms().realm(realmName).roles().create(representation);
+            RolesResource realmsRoles = keycloak.realms().realm(realmName).roles();
+            if (!realmsRoles.list().stream().map(RoleRepresentation::getName).anyMatch(role::equals)) {
+                realmsRoles.create(representation);
             }
         }
 
