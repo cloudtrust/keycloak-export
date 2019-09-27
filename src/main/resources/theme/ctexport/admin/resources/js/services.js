@@ -194,7 +194,25 @@ module.factory('Notifications', function($rootScope, $timeout) {
 
 module.factory('ComponentUtils', function() {
 
+    function sortGroups(prop, arr) {
+        // sort current elements
+        arr.sort(function (a, b) {
+            if (a[prop] < b[prop]) { return -1; }
+            if (a[prop] > b[prop]) { return 1; }
+            return 0;
+        });
+        // check sub groups
+        arr.forEach(function (item, index) {
+            if (!!item.subGroups) {
+                sortGroups(prop, item.subGroups);
+            }
+        });
+        return arr;
+    };
+
     var utils = {};
+
+    utils.sortGroups = sortGroups;
 
     utils.findIndexById = function(array, id) {
         for (var i = 0; i < array.length; i++) {
@@ -254,7 +272,7 @@ module.factory('ComponentUtils', function() {
     }
 
 
-    
+
     utils.addLastEmptyValueToMultivaluedLists = function(properties, config) {
         if (!properties) {
             return;
@@ -291,24 +309,24 @@ module.factory('ComponentUtils', function() {
             }
         }
     }
-    
+
     // Allows you to use ui-select2 with <input> tag.
     // In HTML you will then use property.mvOptions like this:
     // <input ui-select2="prop.mvOptions" ng-model="...
     utils.addMvOptionsToMultivaluedLists = function(properties) {
         if (!properties) return;
-        
+
         for (var i=0 ; i<properties.length ; i++) {
             var prop = properties[i];
             if (prop.type !== 'MultivaluedList') continue;
-            
+
             prop.mvOptions = {
                 'multiple' : true,
                 'simple_tags' : true,
                 'tags' : angular.copy(prop.options)
             }
         }
-        
+
     }
 
     return utils;
@@ -327,6 +345,7 @@ module.factory('Realm', function($resource) {
             url: authUrl + '/realms/master/export/realm/:id',
             params : { id : ''}
         }
+
     });
 });
 
@@ -625,6 +644,27 @@ module.factory('UserImpersonation', function($resource) {
 module.factory('UserCredentials', function($resource) {
     var credentials = {};
 
+    credentials.getCredentials = $resource(authUrl + '/admin/realms/:realm/users/:userId/credentials', {
+        realm : '@realm',
+        userId : '@userId'
+    }).query;
+
+    credentials.deleteCredential = $resource(authUrl + '/admin/realms/:realm/users/:userId/credentials/:credentialId', {
+        realm : '@realm',
+        userId : '@userId',
+        credentialId : '@credentialId'
+    }).delete;
+
+    credentials.updateCredential = $resource(authUrl + '/admin/realms/:realm/users/:userId/credentials/:credentialId', {
+        realm : '@realm',
+        userId : '@userId',
+        credentialId : '@credentialId'
+    }, {
+        update : {
+            method : 'PUT'
+        }
+    }).update;
+
     credentials.resetPassword = $resource(authUrl + '/admin/realms/:realm/users/:userId/reset-password', {
         realm : '@realm',
         userId : '@userId'
@@ -649,6 +689,27 @@ module.factory('UserCredentials', function($resource) {
     }, {
         update : {
             method : 'PUT'
+        }
+    }).update;
+
+    credentials.moveCredentialAfter = $resource(authUrl + '/admin/realms/:realm/users/:userId/credentials/:credentialId/moveAfter/:newPreviousCredentialId', {
+        realm : '@realm',
+        userId : '@userId',
+        credentialId : '@credentialId',
+        newPreviousCredentialId : '@newPreviousCredentialId'
+    }, {
+        update : {
+            method : 'POST'
+        }
+    }).update;
+
+    credentials.moveToFirst = $resource(authUrl + '/admin/realms/:realm/users/:userId/credentials/:credentialId/moveToFirst', {
+        realm : '@realm',
+        userId : '@userId',
+        credentialId : '@credentialId'
+    }, {
+        update : {
+            method : 'POST'
         }
     }).update;
 
@@ -909,7 +970,7 @@ function roleControl($scope, realm, role, roles, clients,
             Notifications.success("Role added to composite.");
         });
     };
-    
+
     $scope.deleteRealmRole = function() {
         $scope.compositeSwitchDisabled=true;
         $scope.selectedRealmMappingsToRemove = JSON.parse('[' + $scope.selectedRealmMappings + ']');
@@ -1896,6 +1957,13 @@ module.factory('RoleMembership', function($resource) {
     });
 });
 
+module.factory('ClientRoleMembership', function($resource) {
+    return $resource(authUrl + '/admin/realms/:realm/clients/:client/roles/:role/users', {
+        realm : '@realm',
+        client : '@client',
+        role : '@role'
+    });
+});
 
 module.factory('UserGroupMembership', function($resource) {
     return $resource(authUrl + '/admin/realms/:realm/users/:userId/groups', {
@@ -2027,4 +2095,3 @@ module.factory('UserGroupMembershipCount', function($resource) {
             }
         });
 });
-
