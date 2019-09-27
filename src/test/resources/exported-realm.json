@@ -1691,6 +1691,15 @@
     ],
     "requiredActions": [
         {
+            "alias": "NOT_AN_ENUM_VALUE",
+            "name": "Not a required action defined in an enum",
+            "providerId": "NOT_AN_ENUM_VALUE",
+            "enabled": true,
+            "defaultAction": false,
+            "priority": 10,
+            "config": {}
+        },
+        {
             "alias": "CONFIGURE_TOTP",
             "name": "Configure OTP",
             "providerId": "CONFIGURE_TOTP",
