@@ -1489,7 +1489,7 @@
           "autheticatorFlow": false
         },
         {
-          "requirement": "OPTIONAL",
+          "requirement": "CONDITIONAL",
           "priority": 20,
           "flowAlias": "First broker login - Conditional OTP",
           "userSetupAllowed": false,
@@ -1596,7 +1596,7 @@
           "autheticatorFlow": false
         },
         {
-          "requirement": "OPTIONAL",
+          "requirement": "CONDITIONAL",
           "priority": 30,
           "flowAlias": "Direct Grant - Conditional OTP",
           "userSetupAllowed": false,
@@ -1662,7 +1662,7 @@
           "autheticatorFlow": false
         },
         {
-          "requirement": "OPTIONAL",
+          "requirement": "CONDITIONAL",
           "priority": 20,
           "flowAlias": "Browser - Conditional OTP",
           "userSetupAllowed": false,
@@ -1780,7 +1780,7 @@
           "autheticatorFlow": false
         },
         {
-          "requirement": "OPTIONAL",
+          "requirement": "CONDITIONAL",
           "priority": 40,
           "flowAlias": "Reset - Conditional OTP",
           "userSetupAllowed": false,

@@ -39,9 +39,7 @@ public class ImportExportUtils {
         for (Entry<UserRepresentation, List<String>> entry : mapUserToRequiredActions.entrySet()) {
             UserRepresentation userRep = entry.getKey();
             UserModel user = session.userLocalStorage().getUserById(userRep.getId(), realm);
-            for (String requiredAction : entry.getValue()) {
-                user.addRequiredAction(requiredAction.toUpperCase());
-            }
+            entry.getValue().forEach(user::addRequiredAction);
         }
 
         return realm;
