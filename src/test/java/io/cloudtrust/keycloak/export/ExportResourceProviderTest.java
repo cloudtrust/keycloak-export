@@ -11,13 +11,13 @@ import org.apache.http.impl.client.HttpClientBuilder;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.container.test.api.RunAsClient;
 import org.jboss.arquillian.junit.Arquillian;
-import org.jboss.logging.Logger;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
 import org.junit.*;
 import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.keycloak.admin.client.Keycloak;
+import org.keycloak.admin.client.resource.RolesResource;
 import org.keycloak.representations.idm.*;
 import org.keycloak.services.resource.RealmResourceProviderFactory;
 import org.keycloak.test.FluentTestsHelper;
@@ -29,7 +29,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -41,8 +40,6 @@ import static org.hamcrest.Matchers.hasProperty;
 @RunWith(Arquillian.class)
 @RunAsClient
 public class ExportResourceProviderTest {
-
-    protected static final Logger logger = Logger.getLogger(ExportResourceProviderTest.class);
 
     private static final String KEYCLOAK_URL = getKeycloakUrl();
     private static final String CLIENT = "admin-cli";
@@ -135,7 +132,7 @@ public class ExportResourceProviderTest {
                 Assert.assertEquals(fileUser.getCredentials(), exportedUser.getCredentials());
                 //making sure credentials are imported
                 if (fileUser.getCredentials() != null && !fileUser.getCredentials().isEmpty()) {
-                    Assert.assertEquals(fileUser.getCredentials().get(0).getHashedSaltedValue(), exportedUser.getCredentials().get(0).getHashedSaltedValue());
+                    Assert.assertEquals(fileUser.getCredentials().get(0).getSecretData(), exportedUser.getCredentials().get(0).getSecretData());
                 }
             });
             //making sure client secrets are well imported and exported
@@ -227,8 +224,7 @@ public class ExportResourceProviderTest {
     }
 
     private static RealmRepresentation exportRealm(String token, String realm) throws IOException {
-        CloseableHttpClient client = HttpClientBuilder.create().build();
-        try {
+        try (CloseableHttpClient client = HttpClientBuilder.create().build()) {
             HttpGet get = new HttpGet(KEYCLOAK_URL + "/realms/" + realm + "/export/realm");
             get.addHeader("Authorization", "Bearer " + token);
 
@@ -237,20 +233,15 @@ public class ExportResourceProviderTest {
                 throw new HttpResponseException(response.getStatusLine().getStatusCode(), "export failed: " + response.getStatusLine().getStatusCode());
             }
             HttpEntity entity = response.getEntity();
-            InputStream is = entity.getContent();
-            ObjectMapper mapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-            try {
+            try (InputStream is = entity.getContent()) {
+                ObjectMapper mapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
                 return mapper.readValue(is, RealmRepresentation.class);
-            } finally {
-                is.close();
             }
-        } finally {
-            client.close();
         }
     }
 
     //TODO replace this with TestsHelper.createTestUser once issue KEYCLOAK-6807 is resolved
-    private static void createTestUser(String username, String password, String realmName, String newUsername, String newPassword, String... roles) throws IOException {
+    private static void createTestUser(String username, String password, String realmName, String newUsername, String newPassword, String... roles) {
         Keycloak keycloak = Keycloak.getInstance(
                 KEYCLOAK_URL,
                 "master",
@@ -262,8 +253,9 @@ public class ExportResourceProviderTest {
         for (String role : roles) {
             RoleRepresentation representation = new RoleRepresentation();
             representation.setName(role);
-            if (!keycloak.realms().realm(realmName).roles().list().contains(role)) {
-                keycloak.realms().realm(realmName).roles().create(representation);
+            RolesResource realmsRoles = keycloak.realms().realm(realmName).roles();
+            if (realmsRoles.list().stream().map(RoleRepresentation::getName).noneMatch(role::equals)) {
+                realmsRoles.create(representation);
             }
         }
 

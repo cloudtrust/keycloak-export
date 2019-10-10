@@ -1,37 +1,37 @@
 package io.cloudtrust.keycloak.export;
 
 import io.cloudtrust.keycloak.export.dto.BetterCredentialRepresentation;
+import io.cloudtrust.keycloak.export.dto.BetterRealmRepresentation;
 import org.jboss.logging.Logger;
 import org.keycloak.common.ClientConnection;
-import org.keycloak.common.util.Base64;
 import org.keycloak.credential.CredentialModel;
 import org.keycloak.exportimport.util.ExportUtils;
 import org.keycloak.jose.jws.JWSInput;
 import org.keycloak.jose.jws.JWSInputException;
-import org.keycloak.models.AdminRoles;
-import org.keycloak.models.ClientModel;
-import org.keycloak.models.KeycloakSession;
-import org.keycloak.models.RealmModel;
-import org.keycloak.models.RoleModel;
-import org.keycloak.models.UserModel;
+import org.keycloak.models.*;
+import org.keycloak.policy.PasswordPolicyNotMetException;
 import org.keycloak.representations.AccessToken;
 import org.keycloak.representations.idm.CredentialRepresentation;
 import org.keycloak.representations.idm.RealmRepresentation;
 import org.keycloak.representations.idm.UserRepresentation;
+import org.keycloak.services.ErrorResponse;
 import org.keycloak.services.managers.AppAuthManager;
 import org.keycloak.services.managers.AuthenticationManager;
 import org.keycloak.services.managers.RealmManager;
 import org.keycloak.services.resource.RealmResourceProvider;
+import org.keycloak.services.resources.KeycloakApplication;
 import org.keycloak.services.resources.admin.AdminAuth;
+import org.keycloak.services.resources.admin.AdminRoot;
 import org.keycloak.services.resources.admin.permissions.AdminPermissionEvaluator;
 import org.keycloak.services.resources.admin.permissions.AdminPermissions;
 
 import javax.ws.rs.*;
 import javax.ws.rs.core.*;
-import java.util.ArrayList;
+import java.net.URI;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * ExportResourceProvider exposes two endpoints to import and export realms
@@ -70,9 +70,9 @@ public class ExportResourceProvider implements RealmResourceProvider {
         RealmManager realmManager = new RealmManager(session);
         RoleModel roleModel = adminAuth.getRealm().getRole(AdminRoles.ADMIN);
         AdminPermissionEvaluator realmAuth = AdminPermissions.evaluator(session, realm, adminAuth);
-        if(roleModel != null && adminAuth.getUser().hasRole(roleModel)
+        if (roleModel != null && adminAuth.getUser().hasRole(roleModel)
                 && adminAuth.getRealm().equals(realmManager.getKeycloakAdminstrationRealm())
-                && realmAuth.realm().canManageRealm()){
+                && realmAuth.realm().canManageRealm()) {
             RealmRepresentation realmRep = ExportUtils.exportRealm(session, realm, true, true);
             //correct users
             if (realmRep.getUsers() != null) {
@@ -87,49 +87,41 @@ public class ExportResourceProvider implements RealmResourceProvider {
     /**
      * This method rewrites the credential list for the users, including the Id (which is missing by default).
      * Unfortunately, due to the limitations in the keycloak API, there is no way to unit test this.
+     *
      * @param users The user representations to correct
      * @param realm the realm being exported
      */
-    private void setCorrectCredentials(List <UserRepresentation> users, RealmModel realm) {
+    private void setCorrectCredentials(List<UserRepresentation> users, RealmModel realm) {
         Map<String, UserRepresentation> userRepMap = new HashMap<>();
         for (UserRepresentation userRep : users) {
             userRepMap.put(userRep.getId(), userRep);
         }
 
         for (UserModel user : session.users().getUsers(realm, true)) {
-            // Credentials
-            List<CredentialModel> creds = session.userCredentialManager().getStoredCredentials(realm, user);
-            List<CredentialRepresentation> credReps = new ArrayList<CredentialRepresentation>();
-            for (CredentialModel cred : creds) {
-                CredentialRepresentation credRep = exportCredential(cred);
-                credReps.add(credRep);
-            }
             UserRepresentation userRep = userRepMap.get(user.getId());
             if (userRep != null) {
+                // Credentials
+                List<CredentialModel> creds = session.userCredentialManager().getStoredCredentials(realm, user);
+                List<CredentialRepresentation> credReps = creds.stream().map(this::exportCredential).collect(Collectors.toList());
                 userRep.setCredentials(credReps);
             }
         }
     }
 
-    private BetterCredentialRepresentation exportCredential(CredentialModel userCred){
+    private BetterCredentialRepresentation exportCredential(CredentialModel userCred) {
         BetterCredentialRepresentation credRep = new BetterCredentialRepresentation();
         credRep.setId(userCred.getId());
         credRep.setType(userCred.getType());
-        credRep.setDevice(userCred.getDevice());
-        credRep.setHashedSaltedValue(userCred.getValue());
-        if (userCred.getSalt() != null) credRep.setSalt(Base64.encodeBytes(userCred.getSalt()));
-        credRep.setHashIterations(userCred.getHashIterations());
-        credRep.setCounter(userCred.getCounter());
-        credRep.setAlgorithm(userCred.getAlgorithm());
-        credRep.setDigits(userCred.getDigits());
         credRep.setCreatedDate(userCred.getCreatedDate());
-        credRep.setConfig(userCred.getConfig());
-        credRep.setPeriod(userCred.getPeriod());
+        credRep.setCredentialData(userCred.getCredentialData());
+        credRep.setSecretData(userCred.getSecretData());
+        credRep.setUserLabel(userCred.getUserLabel());
         return credRep;
     }
 
     @Override
     public void close() {
+        // Nothing to close
     }
 
     /**
@@ -137,7 +129,7 @@ public class ExportResourceProvider implements RealmResourceProvider {
      * it allows to check if a user as realm/master admin
      * at each upgrade check that it hasn't been modified
      */
-    protected AdminAuth authenticateRealmAdminRequest(HttpHeaders headers, UriInfo uriInfo) {
+    private AdminAuth authenticateRealmAdminRequest(HttpHeaders headers, UriInfo uriInfo) {
         String tokenString = authManager.extractAuthorizationHeaderToken(headers);
         if (tokenString == null) throw new NotAuthorizedException("Bearer");
         AccessToken token;
@@ -167,5 +159,43 @@ public class ExportResourceProvider implements RealmResourceProvider {
         }
 
         return new AdminAuth(realm, authResult.getToken(), authResult.getUser(), client);
+    }
+
+    @POST
+    @Path("realm")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response importRealm(@Context final HttpHeaders headers, @Context final UriInfo uriInfo, @Context KeycloakApplication keycloak, BetterRealmRepresentation rep) {
+        try {
+            AdminAuth auth = authenticateRealmAdminRequest(headers, uriInfo);
+            AdminPermissions.realms(session, auth).requireCreateRealm();
+
+            RealmModel realm = ImportExportUtils.importRealm(session, keycloak, rep);
+            grantPermissionsToRealmCreator(auth, realm);
+
+            URI location = AdminRoot.realmsUrl(session.getContext().getUri()).path(realm.getName()).build();
+            logger.debugv("imported realm success, sending back: {0}", location.toString());
+
+            return Response.created(location).build();
+        } catch (ModelDuplicateException e) {
+            logger.error("Conflict detected", e);
+            return ErrorResponse.exists("Conflict detected. See logs for details");
+        } catch (PasswordPolicyNotMetException e) {
+            logger.error("Password policy not met for user " + e.getUsername(), e);
+            if (session.getTransactionManager().isActive()) session.getTransactionManager().setRollbackOnly();
+            return ErrorResponse.error("Password policy not met. See logs for details", Response.Status.BAD_REQUEST);
+        }
+    }
+
+    private void grantPermissionsToRealmCreator(AdminAuth auth, RealmModel realm) {
+        if (auth.hasRealmRole(AdminRoles.ADMIN)) {
+            return;
+        }
+
+        new RealmManager(session).getKeycloakAdminstrationRealm();
+        ClientModel realmAdminApp = realm.getMasterAdminClient();
+        for (String r : AdminRoles.ALL_REALM_ROLES) {
+            RoleModel role = realmAdminApp.getRole(r);
+            auth.getUser().grantRole(role);
+        }
     }
 }

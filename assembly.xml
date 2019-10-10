@@ -16,7 +16,7 @@
         </fileSet>
         <fileSet>
             <directory>${project.build.directory}</directory>
-            <outputDirectory>/target</outputDirectory>
+            <outputDirectory>target</outputDirectory>
             <includes>
                 <include>keycloak-export.jar</include>
             </includes>
