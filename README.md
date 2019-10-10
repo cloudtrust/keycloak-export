@@ -2,13 +2,13 @@
 
 This module allows you to perform a full export from the REST-API, while keycloak is still running.
 
-This version currently works with keycloak 6.0.1.
+This version currently works with keycloak 7.0.0 multi-token-prototype, but there are versions for other builds (see the releases)
 
 ## Install keycloak-export
 
 You need Java-8-x Java environment. To build, you must have the keycloak test artifacts in one of your repositories.
 This can be done by downloading the keycloak source, and building it as recommended on their [webpage](https://github.com/keycloak/keycloak).
-Make sure that you build the tag 6.0.1.
+Make sure that you build the [keycloak 7.0.0 multi-token-prototype](https://github.com/cloudtrust/keycloak/tree/multi-token-prototype)
 
 Run
 
