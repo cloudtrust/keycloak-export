@@ -11,7 +11,6 @@ import org.apache.http.impl.client.HttpClientBuilder;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.container.test.api.RunAsClient;
 import org.jboss.arquillian.junit.Arquillian;
-import org.jboss.logging.Logger;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
 import org.junit.*;
@@ -41,8 +40,6 @@ import static org.hamcrest.Matchers.hasProperty;
 @RunWith(Arquillian.class)
 @RunAsClient
 public class ExportResourceProviderTest {
-
-    protected static final Logger logger = Logger.getLogger(ExportResourceProviderTest.class);
 
     private static final String KEYCLOAK_URL = getKeycloakUrl();
     private static final String CLIENT = "admin-cli";
@@ -227,8 +224,7 @@ public class ExportResourceProviderTest {
     }
 
     private static RealmRepresentation exportRealm(String token, String realm) throws IOException {
-        CloseableHttpClient client = HttpClientBuilder.create().build();
-        try {
+        try (CloseableHttpClient client = HttpClientBuilder.create().build()) {
             HttpGet get = new HttpGet(KEYCLOAK_URL + "/realms/" + realm + "/export/realm");
             get.addHeader("Authorization", "Bearer " + token);
 
@@ -237,20 +233,15 @@ public class ExportResourceProviderTest {
                 throw new HttpResponseException(response.getStatusLine().getStatusCode(), "export failed: " + response.getStatusLine().getStatusCode());
             }
             HttpEntity entity = response.getEntity();
-            InputStream is = entity.getContent();
-            ObjectMapper mapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-            try {
+            try (InputStream is = entity.getContent()) {
+                ObjectMapper mapper = new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
                 return mapper.readValue(is, RealmRepresentation.class);
-            } finally {
-                is.close();
             }
-        } finally {
-            client.close();
         }
     }
 
     //TODO replace this with TestsHelper.createTestUser once issue KEYCLOAK-6807 is resolved
-    private static void createTestUser(String username, String password, String realmName, String newUsername, String newPassword, String... roles) throws IOException {
+    private static void createTestUser(String username, String password, String realmName, String newUsername, String newPassword, String... roles) {
         Keycloak keycloak = Keycloak.getInstance(
                 KEYCLOAK_URL,
                 "master",
@@ -263,7 +254,7 @@ public class ExportResourceProviderTest {
             RoleRepresentation representation = new RoleRepresentation();
             representation.setName(role);
             RolesResource realmsRoles = keycloak.realms().realm(realmName).roles();
-            if (!realmsRoles.list().stream().map(RoleRepresentation::getName).anyMatch(role::equals)) {
+            if (realmsRoles.list().stream().map(RoleRepresentation::getName).noneMatch(role::equals)) {
                 realmsRoles.create(representation);
             }
         }
