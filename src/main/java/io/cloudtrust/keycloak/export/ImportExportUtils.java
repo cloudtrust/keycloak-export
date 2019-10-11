@@ -1,8 +1,12 @@
 package io.cloudtrust.keycloak.export;
 
 import io.cloudtrust.keycloak.export.dto.BetterRealmRepresentation;
+import org.jboss.logging.Logger;
+import org.keycloak.Config;
+import org.keycloak.exportimport.Strategy;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.RealmModel;
+import org.keycloak.models.RealmProvider;
 import org.keycloak.models.UserModel;
 import org.keycloak.representations.idm.UserRepresentation;
 import org.keycloak.services.managers.RealmManager;
@@ -15,7 +19,29 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 public class ImportExportUtils {
-    public static RealmModel importRealm(KeycloakSession session, KeycloakApplication keycloak, BetterRealmRepresentation rep) {
+    private static final Logger logger = Logger.getLogger(ImportExportUtils.class);
+
+    public static RealmModel importRealm(KeycloakSession session, KeycloakApplication keycloak, BetterRealmRepresentation rep, Strategy strategy, boolean skipUserDependent) {
+        String realmName = rep.getRealm();
+        RealmProvider model = session.realms();
+        RealmModel realm = model.getRealmByName(realmName);
+
+        if (realm != null) {
+            if (strategy == Strategy.IGNORE_EXISTING) {
+                logger.infof("Realm '%s' already exists. Import skipped", realmName);
+                return null;
+            } else if (strategy == Strategy.OVERWRITE_EXISTING) {
+                logger.infof("Realm '%s' already exists. Removing it before import", realmName);
+                if (Config.getAdminRealm().equals(realm.getId())) {
+                    // Delete all masterAdmin apps due to foreign key constraints
+                    for (RealmModel currRealm : model.getRealms()) {
+                        currRealm.setMasterAdminClient(null);
+                    }
+                }
+                model.removeRealm(realm.getId());
+            }
+        }
+
         RealmManager realmManager = new RealmManager(session);
         if (keycloak != null) {
             realmManager.setContextPath(keycloak.getContextPath());
@@ -33,7 +59,7 @@ public class ImportExportUtils {
         }
 
         // Basic import
-        RealmModel realm = realmManager.importRealm(rep);
+        realm = realmManager.importRealm(rep, skipUserDependent);
 
         // Now set required actions
         for (Entry<UserRepresentation, List<String>> entry : mapUserToRequiredActions.entrySet()) {

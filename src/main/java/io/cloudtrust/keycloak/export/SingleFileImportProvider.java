@@ -76,8 +76,7 @@ public class SingleFileImportProvider implements ImportProvider {
     }
 
     private void importRealm(KeycloakSession session, BetterRealmRepresentation realm, Strategy strategy) {
-        logger.infof("Importing realm %s (strategy %s ignored)", realm.getRealm(), strategy);
-        ImportExportUtils.importRealm(session, null, realm);
+        ImportExportUtils.importRealm(session, null, realm, strategy, false);
     }
 
     private BetterRealmRepresentation getMasterRealm() throws IOException {
