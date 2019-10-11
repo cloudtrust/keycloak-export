@@ -5,6 +5,7 @@ import io.cloudtrust.keycloak.export.dto.BetterRealmRepresentation;
 import org.jboss.logging.Logger;
 import org.keycloak.common.ClientConnection;
 import org.keycloak.credential.CredentialModel;
+import org.keycloak.exportimport.Strategy;
 import org.keycloak.exportimport.util.ExportUtils;
 import org.keycloak.jose.jws.JWSInput;
 import org.keycloak.jose.jws.JWSInputException;
@@ -169,7 +170,7 @@ public class ExportResourceProvider implements RealmResourceProvider {
             AdminAuth auth = authenticateRealmAdminRequest(headers, uriInfo);
             AdminPermissions.realms(session, auth).requireCreateRealm();
 
-            RealmModel realm = ImportExportUtils.importRealm(session, keycloak, rep);
+            RealmModel realm = ImportExportUtils.importRealm(session, keycloak, rep, null, false);
             grantPermissionsToRealmCreator(auth, realm);
 
             URI location = AdminRoot.realmsUrl(session.getContext().getUri()).path(realm.getName()).build();
