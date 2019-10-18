@@ -1,24 +1,26 @@
 <assembly xmlns="http://maven.apache.org/ASSEMBLY/2.0.0"
           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
           xsi:schemaLocation="http://maven.apache.org/ASSEMBLY/2.0.0 http://maven.apache.org/xsd/assembly-2.0.0.xsd">
-    <id>bin</id>
+    <id>dist</id>
     <formats>
         <format>tar.gz</format>
     </formats>
+    <baseDirectory>${project.build.finalName}</baseDirectory>
+    <files>
+        <file>
+            <source>install.sh</source>
+            <fileMode>0755</fileMode>
+        </file>
+        <file>
+            <source>module.xml</source>
+        </file>
+    </files>
     <fileSets>
-        <fileSet>
-            <directory>${project.basedir}</directory>
-            <outputDirectory>/</outputDirectory>
-            <includes>
-                <include>module.xml</include>
-                <include>install.sh</include>
-            </includes>
-        </fileSet>
         <fileSet>
             <directory>${project.build.directory}</directory>
             <outputDirectory>target</outputDirectory>
             <includes>
-                <include>keycloak-export.jar</include>
+                <include>${project.build.finalName}.jar</include>
             </includes>
         </fileSet>
     </fileSets>

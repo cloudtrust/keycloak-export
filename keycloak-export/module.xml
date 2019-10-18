@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <module xmlns="urn:jboss:module:1.3" name="io.cloudtrust.keycloak-export">
     <resources>
-        <resource-root path="keycloak-export.jar"/>
+        <resource-root path="JAR_NAME"/>
     </resources>
     <dependencies>
         <module name="org.keycloak.keycloak-core"/>
