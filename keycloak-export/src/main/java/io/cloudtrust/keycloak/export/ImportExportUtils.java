@@ -51,10 +51,12 @@ public class ImportExportUtils {
         // Original version from RepresentationToModel first convert it to an enum
         // then get the name of the enum value. This fails for customized required actions
         Map<UserRepresentation, List<String>> mapUserToRequiredActions = new HashMap<>();
-        for (UserRepresentation user : rep.getUsers()) {
-            if (user.getRequiredActions() != null) {
-                mapUserToRequiredActions.put(user, user.getRequiredActions());
-                user.setRequiredActions(Collections.emptyList());
+        if (rep.getUsers()!=null) {
+            for (UserRepresentation user : rep.getUsers()) {
+                if (user.getRequiredActions() != null) {
+                    mapUserToRequiredActions.put(user, user.getRequiredActions());
+                    user.setRequiredActions(Collections.emptyList());
+                }
             }
         }
 
