@@ -52,7 +52,7 @@ pipeline {
               """
             }
             def git_url = "${env.GIT_URL}".replaceFirst("^(http[s]?://www\\.|http[s]?://|www\\.)","")
-            withCredentials([usernamePassword(credentialsId: "3d6daa6f-8eea-43d0-b69e-0616258d5b1b",
+            withCredentials([usernamePassword(credentialsId: "support-triustid-ch",
                 passwordVariable: 'PWD',
                 usernameVariable: 'USR')]) {
               sh("git config --global user.email 'ci@dev.null'")
