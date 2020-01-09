@@ -6,7 +6,7 @@
 
 set -eE
 MODULE_DIR=$(dirname $0)
-TARGET_DIR=${MODULE_DIR}/target
+TARGET_DIR=$MODULE_DIR/target
 
 usage ()
 {
@@ -22,7 +22,8 @@ init()
     #optional args
     argv__CLUSTER=0;
     argv__UNINSTALL=0
-    getopt_results=$(getopt -s bash -o cu --long cluster,uninstall -- "$@")
+    argv__TARGET="http://localhost:8898"
+    getopt_results=$(getopt -s bash -o ct:u --long cluster,target:,uninstall -- "$@")
 
     if test $? != 0
     then
@@ -43,6 +44,11 @@ init()
                 argv__CLUSTER=1
                 echo "--cluster set. Will edit cluster config"
                 shift
+                ;;
+            -t|--target)
+                argv__TARGET="$2"
+                echo "--target set to \"$argv__TARGET\". Will edit papercard target URI"
+                shift 2
                 ;;
             --)
                 shift
@@ -73,7 +79,7 @@ init()
     echo $CONF_FILE
     MODULE_NAME=$(xmlstarlet sel -N oe="urn:jboss:module:1.3" -t -v '/oe:module/@name' -n $MODULE_DIR/module.xml)
     MODULE=${MODULE_NAME##*.}
-    JAR_PATH=`find $TARGET_DIR/ -type f -name "*.jar" -not -name "*sources.jar"`
+    JAR_PATH=`find $TARGET_DIR/ -type f -name "*.jar" -not -name "*sources.jar" | grep -v "archive-tmp"`
     JAR_NAME=`basename $JAR_PATH`
     MODULE_PATH=${MODULE_NAME//./\/}/main
 }
@@ -93,6 +99,7 @@ cleanup()
     xmlstarlet ed -L -N c="urn:jboss:domain:keycloak-server:1.1" -d "/_:server/_:profile/c:subsystem/c:providers/c:provider[text()='module:$MODULE_NAME']" $CONF_FILE
     xmlstarlet ed -L -N c="urn:jboss:domain:keycloak-server:1.1" -d "/_:server/_:profile/c:subsystem/c:theme/c:modules/c:module[text()='$MODULE_NAME']" $CONF_FILE
     sed -i "$ s/,$MODULE$//" $argv__KEYCLOAK/modules/layers.conf
+    sed -i "$ s/\([=,]\)$MODULE,/\1/" $argv__KEYCLOAK/modules/layers.conf
     rm -rf $argv__KEYCLOAK/modules/system/layers/$MODULE
     echo "done"
 }
@@ -124,7 +131,7 @@ trap Main__exitHandler ERR
 
 Main__main()
 {
-    # init scipt temporals
+    # init script temporals
     init_exceptions
     init "$@"
     if [[ "$argv__UNINSTALL" -eq 1 ]]; then

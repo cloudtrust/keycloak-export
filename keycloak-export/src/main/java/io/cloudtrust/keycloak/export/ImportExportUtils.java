@@ -43,9 +43,6 @@ public class ImportExportUtils {
         }
 
         RealmManager realmManager = new RealmManager(session);
-        if (keycloak != null) {
-            realmManager.setContextPath(keycloak.getContextPath());
-        }
 
         // Cache required actions information and remove it from user representations..
         // Original version from RepresentationToModel first convert it to an enum
