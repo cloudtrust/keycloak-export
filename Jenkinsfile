@@ -31,16 +31,21 @@ pipeline {
             options = '-DchromeOptions="-headless"'
             prefix = 'xvfb-run --server-args="-screen 0 1920x1080x24" --server-num=99'
           }
-          sh """
-            ${prefix} mvn -B -T4 clean package \
-              -Dbrowser=\"${params.BROWSER}\" \
-              ${options} \
-              -DskipTests=${params.SKIP_TESTS} \
-              spotbugs:spotbugs pmd:pmd dependency-check:check \
-              -Dsonar.java.spotbugs.reportPaths=target/spotbugsXml.xml \
-              -Dsonar.java.pmd.reportPaths=target/pmd.xml \
-              sonar:sonar
-          """
+
+          withCredentials([usernamePassword(credentialsId: 'sonarqube', usernameVariable: 'USER', passwordVariable: 'PASS')]) {
+            def sonar_opts = "\"-Dsonar.login=${USER}\" \"-Dsonar.password=${PASS}\""
+            sh """
+              ${prefix} mvn -B -T4 clean package \
+                -Dbrowser=\"${params.BROWSER}\" \
+                ${options} \
+                -DskipTests=${params.SKIP_TESTS} \
+                spotbugs:spotbugs pmd:pmd dependency-check:check \
+                -Dsonar.java.spotbugs.reportPaths=target/spotbugsXml.xml \
+                -Dsonar.java.pmd.reportPaths=target/pmd.xml \
+                ${sonar_opts} \
+                sonar:sonar
+            """
+          }
           if (params.CREATE_RELEASE == "true"){
             echo "creating release ${VERSION} and uploading it to ${REPO_URL}"
             // upload to repo
@@ -48,7 +53,7 @@ pipeline {
               sh """
                 cd "${APP}/target"
                 mv "${APP}"-?.?.?*.tar.gz "${APP}-${params.VERSION}.tar.gz"
-                curl -k -u"${USR}:${PWD}" -T "${APP}-${params.VERSION}.tar.gz" --keepalive-time 2 "${REPO_URL}/${APP}-${params.VERSION}.tar.gz"
+                curl --fail -k -u"${USR}:${PWD}" -T "${APP}-${params.VERSION}.tar.gz" --keepalive-time 2 "${REPO_URL}/${APP}-${params.VERSION}.tar.gz"
               """
             }
             def git_url = "${env.GIT_URL}".replaceFirst("^(http[s]?://www\\.|http[s]?://|www\\.)","")
