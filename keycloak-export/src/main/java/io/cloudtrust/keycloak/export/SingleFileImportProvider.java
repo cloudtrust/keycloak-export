@@ -86,7 +86,7 @@ public class SingleFileImportProvider implements ImportProvider {
 
     private void checkRealmReps() throws IOException {
         if (realmReps == null) {
-            try (FileInputStream is = new FileInputStream(file)) {
+            try (InputStream is = new FileInputStream(file)) {
                 realmReps = getObjectsFromStream(objMapperProvider.get(), is, BetterRealmRepresentation.class);
             }
         }
@@ -95,8 +95,7 @@ public class SingleFileImportProvider implements ImportProvider {
     private static <T> List<T> getObjectsFromStream(ObjectMapper mapper, InputStream is, Class<T> clazz) throws IOException {
         List<T> result = new ArrayList<>();
         JsonFactory factory = mapper.getFactory();
-        JsonParser parser = factory.createParser(is);
-        try {
+        try (JsonParser parser = factory.createParser(is)) {
             parser.nextToken();
 
             if (parser.getCurrentToken() == JsonToken.START_ARRAY) {
@@ -113,8 +112,6 @@ public class SingleFileImportProvider implements ImportProvider {
                 T realmRep = parser.readValueAs(clazz);
                 result.add(realmRep);
             }
-        } finally {
-            parser.close();
         }
 
         return result;

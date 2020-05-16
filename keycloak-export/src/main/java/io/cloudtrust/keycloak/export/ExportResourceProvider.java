@@ -108,7 +108,7 @@ public class ExportResourceProvider implements RealmResourceProvider {
      * @param realm the realm being exported
      */
     private void setCorrectCredentials(List<UserRepresentation> users, RealmModel realm) {
-        Map<String, UserRepresentation> userRepMap = new HashMap<>();
+        Map<String, UserRepresentation> userRepMap = new HashMap<>(users.size());
         for (UserRepresentation userRep : users) {
             userRepMap.put(userRep.getId(), userRep);
         }
@@ -153,7 +153,7 @@ public class ExportResourceProvider implements RealmResourceProvider {
             JWSInput input = new JWSInput(tokenString);
             token = input.readJsonContent(AccessToken.class);
         } catch (JWSInputException e) {
-            throw new NotAuthorizedException("Bearer token format error");
+            throw new NotAuthorizedException("Bearer token format error", e);
         }
         String realmName = token.getIssuer().substring(token.getIssuer().lastIndexOf('/') + 1);
         RealmManager realmManager = new RealmManager(session);

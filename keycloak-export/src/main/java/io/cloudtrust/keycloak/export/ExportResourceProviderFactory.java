@@ -42,14 +42,16 @@ public class ExportResourceProviderFactory implements RealmResourceProviderFacto
 
     @Override
     public void init(Scope config) {
+        // Nothing to do
     }
 
     @Override
     public void postInit(KeycloakSessionFactory factory) {
+        // Nothing to do
     }
 
     @Override
     public void close() {
+        // Nothing to close
     }
-
 }
