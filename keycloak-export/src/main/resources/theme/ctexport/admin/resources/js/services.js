@@ -2,7 +2,7 @@
 
 var module = angular.module('keycloak.services', [ 'ngResource', 'ngRoute' ]);
 
-module.service('Dialog', function($modal) {
+module.service('Dialog', function($modal, $translate) {
     var dialog = {};
 
     var openDialog = function(title, message, btns, template) {
@@ -43,20 +43,11 @@ module.service('Dialog', function($modal) {
     };
 
     dialog.confirmDelete = function(name, type, success) {
-        var title = 'Delete ' + escapeHtml(type.charAt(0).toUpperCase() + type.slice(1));
-        var msg = 'Are you sure you want to permanently delete the ' + type + ' ' + name + '?';
-        var btns = {
-            ok: {
-                label: 'Delete',
-                cssClass: 'btn btn-danger'
-            },
-            cancel: {
-                label: 'Cancel',
-                cssClass: 'btn btn-default'
-            }
-        }
+        var title = $translate.instant('dialogs.delete.title', {type: escapeHtml(type.charAt(0).toUpperCase() + type.slice(1))});
+        var msg = $translate.instant('dialogs.delete.message', {type: type, name: name});
+        var confirm = $translate.instant('dialogs.delete.confirm');
 
-        openDialog(title, msg, btns, '/templates/kc-modal.html').then(success);
+        dialog.confirmWithButtonText(title, msg, confirm, success);
     }
 
     dialog.confirmGenerateKeys = function(name, type, success) {
@@ -77,13 +68,17 @@ module.service('Dialog', function($modal) {
     }
 
     dialog.confirm = function(title, message, success, cancel) {
+        dialog.confirmWithButtonText(title, message, title, success, cancel);
+    }
+
+    dialog.confirmWithButtonText = function(title, message, confirm, success, cancel) {
         var btns = {
             ok: {
-                label: title,
+                label: confirm,
                 cssClass: 'btn btn-danger'
             },
             cancel: {
-                label: 'Cancel',
+                label: $translate.instant('dialogs.cancel'),
                 cssClass: 'btn btn-default'
             }
         }
@@ -94,7 +89,7 @@ module.service('Dialog', function($modal) {
     dialog.message = function(title, message, success, cancel) {
         var btns = {
             ok: {
-                label: "Ok",
+                label: $translate.instant('dialogs.ok'),
                 cssClass: 'btn btn-default'
             }
         }
@@ -137,7 +132,36 @@ module.service('CopyDialog', function($modal) {
     return dialog;
 });
 
-module.factory('Notifications', function($rootScope, $timeout) {
+module.service('UpdateDialog', function($modal) {
+    var dialog = {};
+    dialog.open = function (title, name, desc, success) {
+        var controller = function($scope, $modalInstance, title) {
+            $scope.title = title;
+            $scope.name = { value: name };
+            $scope.description = { value: desc };
+            $scope.ok = function () {
+                console.log('ok with name: ' + $scope.name + 'and description: ' + $scope.description);
+                $modalInstance.close();
+                success($scope.name.value, $scope.description.value);
+            };
+            $scope.cancel = function () {
+                $modalInstance.dismiss('cancel');
+            };
+        }
+        $modal.open({
+            templateUrl: resourceUrl + '/templates/kc-edit.html',
+            controller: controller,
+            resolve: {
+                title: function() {
+                    return title;
+                }
+            }
+        });
+    };
+    return dialog;
+});
+
+module.factory('Notifications', function($rootScope, $timeout, $translate) {
     // time (in ms) the notifications are shown
     var delay = 5000;
 
@@ -173,19 +197,19 @@ module.factory('Notifications', function($rootScope, $timeout) {
     }
 
     notifications.info = function(message) {
-        notifications.message("info", "Info!", message);
+        notifications.message("info", $translate.instant('notifications.info.header'), message);
     };
 
     notifications.success = function(message) {
-        notifications.message("success", "Success!", message);
+        notifications.message("success", $translate.instant('notifications.success.header'), message);
     };
 
     notifications.error = function(message) {
-        notifications.message("danger", "Error!", message);
+        notifications.message("danger", $translate.instant('notifications.error.header'), message);
     };
 
     notifications.warn = function(message) {
-        notifications.message("warning", "Warning!", message);
+        notifications.message("warning", $translate.instant('notifications.warn.header'), message);
     };
 
     return notifications;
@@ -430,25 +454,12 @@ module.factory('RegisterRequiredAction', function($resource) {
 module.factory('RealmLDAPConnectionTester', function($resource, $httpParamSerializer) {
     return $resource(authUrl + '/admin/realms/:realm/testLDAPConnection', {
         realm : '@realm'
-    }, {
-        save: {
-            method: 'POST',
-            headers : { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
-            transformRequest: function (data) {
-                return $httpParamSerializer(data)
-            }
-        }
     });
 });
 
-module.factory('RealmSMTPConnectionTester', function($resource) {
-    return $resource(authUrl + '/admin/realms/:realm/testSMTPConnection/:config', {
-        realm : '@realm',
-        config : '@config'
-    }, {
-        send: {
-            method: 'POST'
-        }
+module.factory('RealmSMTPConnectionTester', function($resource, $httpParamSerializer) {
+    return $resource(authUrl '/admin/realms/:realm/testSMTPConnection', {
+        realm : '@realm'
     });
 });
 
@@ -558,6 +569,15 @@ module.service('UserSearchState', function() {
     };
 });
 
+module.service('ClientListSearchState', function() {
+    this.isFirstSearch = true;
+    this.query = {
+        max : 20,
+        first : 0,
+        search: true
+    };
+});
+
 // Service tracks the last flow selected in Authentication-->Flows tab
 module.service('LastFlowSelected', function() {
     this.alias = null;
@@ -644,6 +664,11 @@ module.factory('UserCredentials', function($resource) {
     var credentials = {};
 
     credentials.getCredentials = $resource(authUrl + '/admin/realms/:realm/users/:userId/credentials', {
+        realm : '@realm',
+        userId : '@userId'
+    }).query;
+
+    credentials.getConfiguredUserStorageCredentialTypes = $resource(authUrl + '/admin/realms/:realm/users/:userId/configured-user-storage-credential-types', {
         realm : '@realm',
         userId : '@userId'
     }).query;
@@ -884,10 +909,28 @@ module.factory('RoleClientComposites', function($resource) {
     });
 });
 
+function clientSelectControl($scope, realm, Client) {
+    $scope.clientsUiSelect = {
+        minimumInputLength: 0,
+        delay: 500,
+        allowClear: true,
+        query: function (query) {
+            var data = {results: []};
+            Client.query({realm: realm, search: true, clientId: query.term.trim(), max: 20}, function(response) {
+                data.results = response;
+                query.callback(data);
+            });
+        },
+        formatResult: function(object, container, query) {
+            object.text = object.clientId;
+            return object.clientId;
+        }
+    };
+}
 
-function roleControl($scope, realm, role, roles, clients,
-                     ClientRole, RoleById, RoleRealmComposites, RoleClientComposites,
-                     $http, $location, Notifications, Dialog, ComponentUtils) {
+function roleControl($scope, $route, realm, role, roles, Client,
+            ClientRole, RoleById, RoleRealmComposites, RoleClientComposites,
+            $http, $location, Notifications, Dialog, ComponentUtils) {
 
     $scope.$watch(function () {
         return $location.path();
@@ -925,7 +968,6 @@ function roleControl($scope, realm, role, roles, clients,
     $scope.selectedRealmRoles = [];
     $scope.selectedRealmMappings = [];
     $scope.realmMappings = [];
-    $scope.clients = clients;
     $scope.clientRoles = [];
     $scope.selectedClientRoles = [];
     $scope.selectedClientMappings = [];
@@ -940,6 +982,9 @@ function roleControl($scope, realm, role, roles, clients,
         }
     }
 
+    clientSelectControl($scope, $route.current.params.realm, Client);
+
+    $scope.selectedClient = null;
 
     $scope.realmMappings = RoleRealmComposites.query({realm : realm.realm, role : role.id}, function(){
         for (var i = 0; i < $scope.realmMappings.length; i++) {
@@ -1034,9 +1079,15 @@ function roleControl($scope, realm, role, roles, clients,
     };
 
 
-    $scope.changeClient = function() {
-        $scope.clientRoles = ClientRole.query({realm : realm.realm, client : $scope.compositeClient.id}, function() {
-                $scope.clientMappings = RoleClientComposites.query({realm : realm.realm, role : role.id, client : $scope.compositeClient.id}, function(){
+    $scope.changeClient = function(client) {
+        console.log("selected client: ", client);
+        if (!client || !client.id) {
+            $scope.selectedClient = null;
+            return;
+        }
+        $scope.selectedClient = client;
+        $scope.clientRoles = ClientRole.query({realm : realm.realm, client : client.id}, function() {
+            $scope.clientMappings = RoleClientComposites.query({realm : realm.realm, role : role.id, client : client.id}, function(){
                     for (var i = 0; i < $scope.clientMappings.length; i++) {
                         var role = $scope.clientMappings[i];
                         for (var j = 0; j < $scope.clientRoles.length; j++) {
@@ -1714,6 +1765,19 @@ module.factory('AuthenticationFlowsCopy', function($resource) {
         alias : '@alias'
     });
 });
+
+module.factory('AuthenticationFlowsUpdate', function($resource) {
+    return $resource(authUrl + '/admin/realms/:realm/authentication/flows/:flow', {
+        realm : '@realm',
+        flow : '@flow'
+    }, {
+        update : {
+          method : 'PUT'
+        }
+    });
+});
+
+
 module.factory('AuthenticationConfigDescription', function($resource) {
     return $resource(authUrl + '/admin/realms/:realm/authentication/config-description/:provider', {
         realm : '@realm',
@@ -1955,10 +2019,23 @@ module.factory('GroupMembership', function($resource) {
     });
 });
 
+module.factory('RoleList', function($resource) {
+    return $resource(authUrl + '/admin/realms/:realm/roles', {
+        realm : '@realm'
+    });
+});
+
 module.factory('RoleMembership', function($resource) {
     return $resource(authUrl + '/admin/realms/:realm/roles/:role/users', {
         realm : '@realm',
         role : '@role'
+    });
+});
+
+module.factory('ClientRoleList', function($resource) {
+    return $resource(authUrl + '/admin/realms/:realm/clients/:client/roles', {
+        realm : '@realm',
+        client : '@client'
     });
 });
 

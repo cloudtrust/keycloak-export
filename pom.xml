@@ -7,7 +7,7 @@
     <parent>
         <groupId>io.cloudtrust</groupId>
         <artifactId>kc-cloudtrust-module</artifactId>
-        <version>8.0.1</version>
+        <version>11.0.2</version>
     </parent>
 
     <artifactId>keycloak-export-parent</artifactId>
@@ -25,11 +25,5 @@
 
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
-        <version.pmd.plugin>3.12.0</version.pmd.plugin>
-        <jacoco.version>0.8.4</jacoco.version>
-        <spotbugs.version>3.1.12.1</spotbugs.version>
-        <fb-contrib.version>7.4.6</fb-contrib.version>
-        <findsecbugs.version>1.9.0</findsecbugs.version>
-        <owasp-check.version>5.2.1</owasp-check.version>
     </properties>
 </project>
