@@ -4,8 +4,17 @@
     </button>
     <h4 class="modal-title">{{title}}</h4>
 </div>
-<div class="modal-body">{{message}}</div>
+<div class="modal-body{{sensitive ? ' modal-sensitive' : ''}}">
+    {{message}}
+    <span ng-hide="!sensitive">
+        <br/>You are currently on <b>{{currentHostname}}</b>.
+        <br/>Confirm the name of the realm to delete:
+    </span>
+</div>
+<div ng-hide="!sensitive" class="sensitive-delete">
+    <input type="text" name="confirm-name" ng-model="confirmName" />
+</div>
 <div class="modal-footer">
     <button type="button" data-ng-class="btns.cancel.cssClass" ng-click="cancel()">{{btns.cancel.label}}</button>
-    <button type="button" data-ng-class="btns.ok.cssClass" ng-click="ok()">{{btns.ok.label}}</button>
+    <button type="button" data-ng-class="btns.ok.cssClass" ng-click="ok(sensitive ? confirmName : '')">{{btns.ok.label}}</button>
 </div>
