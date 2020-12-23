@@ -21,6 +21,9 @@ import java.util.Map.Entry;
 public class ImportExportUtils {
     private static final Logger logger = Logger.getLogger(ImportExportUtils.class);
 
+    private ImportExportUtils() {
+    }
+
     public static RealmModel importRealm(KeycloakSession session, KeycloakApplication keycloak, BetterRealmRepresentation rep, Strategy strategy, boolean skipUserDependent) {
         String realmName = rep.getRealm();
         RealmProvider model = session.realms();
@@ -34,9 +37,7 @@ public class ImportExportUtils {
                 logger.infof("Realm '%s' already exists. Removing it before import", realmName);
                 if (Config.getAdminRealm().equals(realm.getId())) {
                     // Delete all masterAdmin apps due to foreign key constraints
-                    for (RealmModel currRealm : model.getRealms()) {
-                        currRealm.setMasterAdminClient(null);
-                    }
+                    model.getRealmsStream().forEach(r -> r.setMasterAdminClient(null));
                 }
                 model.removeRealm(realm.getId());
             }
@@ -63,7 +64,7 @@ public class ImportExportUtils {
         // Now set required actions
         for (Entry<UserRepresentation, List<String>> entry : mapUserToRequiredActions.entrySet()) {
             UserRepresentation userRep = entry.getKey();
-            UserModel user = session.userLocalStorage().getUserById(userRep.getId(), realm);
+            UserModel user = session.userLocalStorage().getUserById(realm, userRep.getId());
             entry.getValue().forEach(user::addRequiredAction);
         }
 

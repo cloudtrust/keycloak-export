@@ -7,7 +7,7 @@
     <parent>
         <groupId>io.cloudtrust</groupId>
         <artifactId>kc-cloudtrust-testsuite</artifactId>
-        <version>8.0.1</version>
+        <version>14.0.0</version>
         <relativePath/>
     </parent>
 
@@ -167,7 +167,7 @@
         <dependency>
             <groupId>org.apache.sshd</groupId>
             <artifactId>sshd-core</artifactId>
-            <version>2.1.0</version>
+            <version>2.5.1</version>
             <scope>test</scope>
         </dependency>
 
@@ -307,13 +307,13 @@
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
-            <version>${postgresql.version}</version>
+            <version>${postgresql.driver.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.mariadb.jdbc</groupId>
             <artifactId>mariadb-java-client</artifactId>
-            <version>${mariadb.version}</version>
+            <version>${mariadb.driver.version}</version>
             <scope>test</scope>
         </dependency>
 
