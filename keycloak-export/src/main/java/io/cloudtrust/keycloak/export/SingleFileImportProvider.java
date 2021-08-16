@@ -11,7 +11,6 @@ import org.keycloak.exportimport.ImportProvider;
 import org.keycloak.exportimport.Strategy;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.KeycloakSessionFactory;
-import org.keycloak.models.RealmModel;
 import org.keycloak.models.utils.KeycloakModelUtils;
 import org.keycloak.services.managers.RealmManager;
 
@@ -24,7 +23,6 @@ import java.util.List;
 
 public class SingleFileImportProvider implements ImportProvider {
     private static final Logger logger = Logger.getLogger(SingleFileImportProvider.class);
-    private static final ThreadLocal<ObjectMapper> objMapperProvider = ThreadLocal.withInitial(ObjectMapper::new);
 
     private final File file;
 
@@ -49,12 +47,10 @@ public class SingleFileImportProvider implements ImportProvider {
 
             if (masterRealm != null) {
                 // If master was imported, we may need to re-create realm management clients
-                for (RealmModel realm : session.realms().getRealms()) {
-                    if (realm.getMasterAdminClient() == null) {
-                        logger.infof("Re-created management client in master realm for realm '%s'", realm.getName());
-                        new RealmManager(session).setupMasterAdminManagement(realm);
-                    }
-                }
+                session.realms().getRealmsStream().filter(r -> r.getMasterAdminClient() == null).forEach(realm -> {
+                    logger.infof("Re-created management client in master realm for realm '%s'", realm.getName());
+                    new RealmManager(session).setupMasterAdminManagement(realm);
+                });
             }
         });
     }
@@ -87,7 +83,7 @@ public class SingleFileImportProvider implements ImportProvider {
     private void checkRealmReps() throws IOException {
         if (realmReps == null) {
             try (InputStream is = new FileInputStream(file)) {
-                realmReps = getObjectsFromStream(objMapperProvider.get(), is, BetterRealmRepresentation.class);
+                realmReps = getObjectsFromStream(new ObjectMapper(), is, BetterRealmRepresentation.class);
             }
         }
     }

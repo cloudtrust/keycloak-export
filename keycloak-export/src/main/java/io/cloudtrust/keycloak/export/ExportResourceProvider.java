@@ -14,7 +14,6 @@ import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.ModelDuplicateException;
 import org.keycloak.models.RealmModel;
 import org.keycloak.models.RoleModel;
-import org.keycloak.models.UserModel;
 import org.keycloak.policy.PasswordPolicyNotMetException;
 import org.keycloak.representations.AccessToken;
 import org.keycloak.representations.idm.CredentialRepresentation;
@@ -109,19 +108,18 @@ public class ExportResourceProvider implements RealmResourceProvider {
      */
     private void setCorrectCredentials(List<UserRepresentation> users, RealmModel realm) {
         Map<String, UserRepresentation> userRepMap = new HashMap<>(users.size());
-        for (UserRepresentation userRep : users) {
-            userRepMap.put(userRep.getId(), userRep);
-        }
+        users.stream().collect(Collectors.toMap(UserRepresentation::getId, u -> u));
 
-        for (UserModel user : session.users().getUsers(realm, true)) {
+        session.users().getUsersStream(realm, true).forEach(user -> {
             UserRepresentation userRep = userRepMap.get(user.getId());
             if (userRep != null) {
                 // Credentials
-                List<CredentialModel> creds = session.userCredentialManager().getStoredCredentials(realm, user);
-                List<CredentialRepresentation> credReps = creds.stream().map(this::exportCredential).collect(Collectors.toList());
+                List<CredentialRepresentation> credReps = session.userCredentialManager().getStoredCredentialsStream(realm, user)
+                        .map(this::exportCredential)
+                        .collect(Collectors.toList());
                 userRep.setCredentials(credReps);
             }
-        }
+        });
     }
 
     private BetterCredentialRepresentation exportCredential(CredentialModel userCred) {
@@ -146,7 +144,7 @@ public class ExportResourceProvider implements RealmResourceProvider {
      * at each upgrade check that it hasn't been modified
      */
     private AdminAuth authenticateRealmAdminRequest(HttpHeaders headers, UriInfo uriInfo) {
-        String tokenString = authManager.extractAuthorizationHeaderToken(headers);
+        String tokenString = AppAuthManager.extractAuthorizationHeaderToken(headers);
         if (tokenString == null) throw new NotAuthorizedException("Bearer");
         AccessToken token;
         try {
@@ -162,7 +160,12 @@ public class ExportResourceProvider implements RealmResourceProvider {
             throw new NotAuthorizedException("Unknown realm in token");
         }
         session.getContext().setRealm(realm);
-        AuthenticationManager.AuthResult authResult = authManager.authenticateBearerToken(session, realm, uriInfo, clientConnection, headers);
+        AuthenticationManager.AuthResult authResult = new AppAuthManager.BearerTokenAuthenticator(session)
+                .setRealm(realm)
+                .setUriInfo(uriInfo)
+                .setConnection(clientConnection)
+                .setHeaders(headers)
+                .authenticate();
         if (authResult == null) {
             logger.debug("Token not valid");
             throw new NotAuthorizedException("Bearer");
