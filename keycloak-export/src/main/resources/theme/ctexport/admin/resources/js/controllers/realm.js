@@ -155,8 +155,7 @@ module.controller('RealmTabCtrl', function(Dialog, $scope, Current, Realm, Notif
                 Notifications.success("The realm has been deleted.");
                 $location.url("/");
             });
-        // TRUSTID
-        }, true);
+        });
     };
 });
 
