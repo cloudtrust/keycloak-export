@@ -499,3 +499,17 @@ table.credential-data-table td.key {
     font-weight: bold;
 }
 
+.modal-sensitive {
+    color: red;
+    font-size: 2em;
+}
+
+.sensitive-delete {
+    text-align: center;
+}
+
+.sensitive-delete input {
+    width: 90%;
+    font-size: 2em;
+    color: red;
+}
