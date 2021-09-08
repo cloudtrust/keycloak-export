@@ -5,14 +5,21 @@ var module = angular.module('keycloak.services', [ 'ngResource', 'ngRoute' ]);
 module.service('Dialog', function($modal, $translate) {
     var dialog = {};
 
-    var openDialog = function(title, message, btns, template) {
+    var openDialog = function(title, message, btns, template, sensitive = false, name) {
         var controller = function($scope, $modalInstance, title, message, btns) {
             $scope.title = title;
             $scope.message = message;
             $scope.btns = btns;
+            $scope.sensitive = sensitive;
+            $scope.name = name;
+            $scope.currentHostname = window.location.hostname;
 
-            $scope.ok = function () {
-                $modalInstance.close();
+            $scope.ok = function (confirmValue) {
+                if (!sensitive || confirmValue === $scope.name) {
+                    $modalInstance.close();
+                } else {
+                    alert('You mistyped it!');
+                }
             };
             $scope.cancel = function () {
                 $modalInstance.dismiss('cancel');
@@ -31,6 +38,12 @@ module.service('Dialog', function($modal, $translate) {
                 },
                 btns: function() {
                     return btns;
+                },
+                sensitive: function() {
+                    return sensitive;
+                },
+                name: function() {
+                    return name;
                 }
             }
         }).result;
@@ -42,12 +55,12 @@ module.service('Dialog', function($modal, $translate) {
         return div.innerHTML;
     };
 
-    dialog.confirmDelete = function(name, type, success) {
+    dialog.confirmDelete = function(name, type, success, sensitive = false) {
         var title = $translate.instant('dialogs.delete.title', {type: escapeHtml(type.charAt(0).toUpperCase() + type.slice(1))});
         var msg = $translate.instant('dialogs.delete.message', {type: type, name: name});
         var confirm = $translate.instant('dialogs.delete.confirm');
 
-        dialog.confirmWithButtonText(title, msg, confirm, success);
+        dialog.confirmWithButtonText(title, msg, confirm, success, function() {}, sensitive, name);
     }
 
     dialog.confirmGenerateKeys = function(name, type, success) {
@@ -71,7 +84,7 @@ module.service('Dialog', function($modal, $translate) {
         dialog.confirmWithButtonText(title, message, title, success, cancel);
     }
 
-    dialog.confirmWithButtonText = function(title, message, confirm, success, cancel) {
+    dialog.confirmWithButtonText = function(title, message, confirm, success, cancel, sensitive = false, name = "") {
         var btns = {
             ok: {
                 label: confirm,
@@ -83,7 +96,7 @@ module.service('Dialog', function($modal, $translate) {
             }
         }
 
-        openDialog(title, message, btns, '/templates/kc-modal.html').then(success, cancel);
+        openDialog(title, message, btns, '/templates/kc-modal.html', sensitive, name).then(success, cancel);
     }
 
     dialog.message = function(title, message, success, cancel) {
@@ -361,10 +374,14 @@ module.factory('Realm', function($resource) {
         id : '@realm'
     }, {
         update : {
-            method : 'PUT'
+            method : 'PUT',
+            // TrustID Import
+            url: authUrl + '/admin/realms/:id'
         },
         create : {
             method : 'POST',
+            // TrustID Import
+            url: authUrl + '/realms/master/export/realm/:id',
             params : { id : ''}
         }
 
@@ -1017,7 +1034,7 @@ function roleControl($scope, $route, realm, role, roles, Client,
 
 
     clientSelectControl($scope, $route.current.params.realm, Client);
-    
+
     $scope.selectedClient = null;
 
 
