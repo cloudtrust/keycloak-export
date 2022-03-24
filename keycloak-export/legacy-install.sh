@@ -13,12 +13,6 @@ usage ()
     echo "usage: $0 keycloak_path [-c]"
 }
 
-abort_usage_keycloak()
-{
-  echo "Invalid keycloak path"
-  usage
-  exit 1
-}
 
 init()
 {
@@ -75,14 +69,19 @@ init()
         exit 1
     fi
     argv__KEYCLOAK="$1"
-    [ -d $argv__KEYCLOAK ] && [ -d $argv__KEYCLOAK/bin ] && [ -d $argv__KEYCLOAK/providers ] && [ -d $argv__KEYCLOAK/conf ] || abort_usage_keycloak
     # optional args
-    CONF_FILE=$argv__KEYCLOAK/conf/keycloak.conf
+    CONF_FILE=""
+    if [[ "$argv__CLUSTER" -eq 1 ]]; then
+        CONF_FILE=$argv__KEYCLOAK/standalone/configuration/standalone-ha.xml
+    else
+        CONF_FILE=$argv__KEYCLOAK/standalone/configuration/standalone.xml
+    fi
     echo $CONF_FILE
     MODULE_NAME=$(xmlstarlet sel -N oe="urn:jboss:module:1.3" -t -v '/oe:module/@name' -n $MODULE_DIR/module.xml)
     MODULE=${MODULE_NAME##*.}
-    JAR_PATH=`find ${TARGET_DIR} -type f -name "*.jar" -not -name "*sources.jar" | grep -v "archive-tmp"`
+    JAR_PATH=`find $TARGET_DIR/ -type f -name "*.jar" -not -name "*sources.jar" | grep -v "archive-tmp"`
     JAR_NAME=`basename $JAR_PATH`
+    MODULE_PATH=${MODULE_NAME//./\/}/main
 }
 
 init_exceptions()
@@ -93,29 +92,15 @@ init_exceptions()
     Main__ParameterException=2
 }
 
-del_configuration()
-{
-  if [[ ! -z "$1" ]] ; then
-    sed -i "/^$1=/d" ${CONF_FILE}
-  fi
-}
-
-add_configuration()
-{
-  if [[ ! -z "$1" ]] ; then
-    sed -i "/^$1=/d" ${CONF_FILE}
-    echo "$1=$2" >> ${CONF_FILE}
-  fi
-}
-
 cleanup()
 {
     #clean dir structure in case of script failure
     echo "cleanup..."
-
-    #del_configuration spi-xxxxxxxxxxxxxx
-    rm -rf $argv__KEYCLOAK/providers/$MODULE
-
+    xmlstarlet ed -L -N c="urn:jboss:domain:keycloak-server:1.1" -d "/_:server/_:profile/c:subsystem/c:providers/c:provider[text()='module:$MODULE_NAME']" $CONF_FILE
+    xmlstarlet ed -L -N c="urn:jboss:domain:keycloak-server:1.1" -d "/_:server/_:profile/c:subsystem/c:theme/c:modules/c:module[text()='$MODULE_NAME']" $CONF_FILE
+    sed -i "$ s/,$MODULE$//" $argv__KEYCLOAK/modules/layers.conf
+    sed -i "$ s/\([=,]\)$MODULE,/\1/" $argv__KEYCLOAK/modules/layers.conf
+    rm -rf $argv__KEYCLOAK/modules/system/layers/$MODULE
     echo "done"
 }
 
@@ -154,12 +139,22 @@ Main__main()
         exit 0
     fi
     # install module
-    cp $JAR_PATH $argv__KEYCLOAK/providers/
+    mkdir -p $argv__KEYCLOAK/modules/system/layers/$MODULE/$MODULE_PATH/
+    cp $JAR_PATH $argv__KEYCLOAK/modules/system/layers/$MODULE/$MODULE_PATH/
+    cp $MODULE_DIR/module.xml $argv__KEYCLOAK/modules/system/layers/$MODULE/$MODULE_PATH/
+    sed -i "s@JAR_NAME@${JAR_NAME}@g" $argv__KEYCLOAK/modules/system/layers/$MODULE/$MODULE_PATH/module.xml
+    if ! grep -q "$MODULE" "$argv__KEYCLOAK/modules/layers.conf"; then
+        sed -i "$ s/$/,$MODULE/" $argv__KEYCLOAK/modules/layers.conf
+    fi
+    # FIXME make this reentrant then test
+    xmlstarlet ed -L -N c="urn:jboss:domain:keycloak-server:1.1" -s /_:server/_:profile/c:subsystem/c:providers -t elem -n provider -v "module:$MODULE_NAME" $CONF_FILE
 
-    # configure module
-    #add_configuration key value
-    $argv__KEYCLOAK/bin/kc.bat build
-
+    MODULES_EXISTS=`xmlstarlet sel -N c="urn:jboss:domain:keycloak-server:1.1" -t -v "count(/_:server/_:profile/c:subsystem/c:theme/c:modules/c:module)" $CONF_FILE`
+    if [ $MODULES_EXISTS -eq "0" ]; then
+        xmlstarlet ed -L -N c="urn:jboss:domain:keycloak-server:1.1" -d /_:server/_:profile/c:subsystem/c:theme/c:modules $CONF_FILE
+        xmlstarlet ed -L -N c="urn:jboss:domain:keycloak-server:1.1" -s /_:server/_:profile/c:subsystem/c:theme -t elem -n modules $CONF_FILE
+    fi
+    xmlstarlet ed -L -N c="urn:jboss:domain:keycloak-server:1.1" -s /_:server/_:profile/c:subsystem/c:theme/c:modules -t elem -n module -v "$MODULE_NAME" $CONF_FILE
     exit 0
 }
 
