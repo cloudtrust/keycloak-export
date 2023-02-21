@@ -11,8 +11,16 @@
     </parent>
 
     <artifactId>keycloak-export-parent</artifactId>
+    <version>18.1.0-SNAPSHOT</version>
     <description>Parent for export module</description>
     <packaging>pom</packaging>
+
+    <scm>
+        <connection>scm:git:ssh://git@github.com/cloudtrust/keycloak-export</connection>
+        <developerConnection>scm:git:ssh://git@github.com/cloudtrust/keycloak-export</developerConnection>
+        <url>https://github.com/cloudtrust/keycloak-export</url>
+        <tag>HEAD</tag>
+    </scm>
 
     <modules>
         <module>keycloak-export</module>
@@ -26,4 +34,37 @@
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
     </properties>
+
+    <distributionManagement>
+        <repository>
+            <id>project-release</id>
+            <url>https://artifactory.svc.elca.ch/artifactory/prj_cloudtrust_release</url>
+        </repository>
+        <snapshotRepository>
+            <id>project-snapshot</id>
+            <url>https://artifactory.svc.elca.ch/artifactory/prj_cloudtrust_snapshot</url>
+        </snapshotRepository>
+    </distributionManagement>
+    <repositories>
+        <repository>
+            <id>project-release</id>
+            <url>https://artifactory.svc.elca.ch/artifactory/prj_cloudtrust_release</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </repository>
+        <repository>
+            <id>project-snapshot</id>
+            <url>https://artifactory.svc.elca.ch/artifactory/prj_cloudtrust_snapshot</url>
+            <releases>
+                <enabled>false</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
 </project>

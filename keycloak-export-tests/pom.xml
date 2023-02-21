@@ -12,6 +12,7 @@
     </parent>
 
     <artifactId>keycloak-export-tests</artifactId>
+    <version>18.1.0-SNAPSHOT</version>
     <name>Keycloak Export tests</name>
     <packaging>jar</packaging>
 
@@ -24,6 +25,7 @@
         <dependency>
             <groupId>io.cloudtrust</groupId>
             <artifactId>kc-cloudtrust-test-tools</artifactId>
+            <version>${kc-cloudtrust.version}</version>
         </dependency>
         <dependency>
             <groupId>org.keycloak</groupId>
@@ -81,6 +83,29 @@
         </dependency>
     </dependencies>
 
+    <repositories>
+        <repository>
+            <id>project-release</id>
+            <url>https://artifactory.svc.elca.ch/artifactory/prj_cloudtrust_release</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </repository>
+        <repository>
+            <id>project-snapshot</id>
+            <url>https://artifactory.svc.elca.ch/artifactory/prj_cloudtrust_snapshot</url>
+            <releases>
+                <enabled>false</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
+
     <build>
         <finalName>keycloak-export</finalName>
         <plugins>
@@ -90,6 +115,13 @@
             </plugin>
             <plugin>
                 <artifactId>maven-install-plugin</artifactId>
+                <configuration>
+                    <skip>true</skip>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-deploy-plugin</artifactId>
                 <configuration>
                     <skip>true</skip>
                 </configuration>
