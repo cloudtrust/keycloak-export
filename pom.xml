@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
@@ -11,7 +9,7 @@
     </parent>
 
     <artifactId>keycloak-export-parent</artifactId>
-    <version>18.1.0-SNAPSHOT</version>
+    <version>18.1.0</version>
     <description>Parent for export module</description>
     <packaging>pom</packaging>
 
@@ -19,7 +17,7 @@
         <connection>scm:git:ssh://git@github.com/cloudtrust/keycloak-export</connection>
         <developerConnection>scm:git:ssh://git@github.com/cloudtrust/keycloak-export</developerConnection>
         <url>https://github.com/cloudtrust/keycloak-export</url>
-        <tag>HEAD</tag>
+        <tag>18.1.0</tag>
     </scm>
 
     <modules>
