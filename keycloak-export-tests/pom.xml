@@ -10,7 +10,7 @@
     </parent>
 
     <artifactId>keycloak-export-tests</artifactId>
-    <version>18.1.0</version>
+    <version>18.1.1-SNAPSHOT</version>
     <name>Keycloak Export tests</name>
     <packaging>jar</packaging>
 
@@ -130,8 +130,4 @@
             </plugin>
         </plugins>
     </build>
-
-  <scm>
-    <tag>18.1.0</tag>
-  </scm>
 </project>
