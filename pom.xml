@@ -9,7 +9,7 @@
     </parent>
 
     <artifactId>keycloak-export-parent</artifactId>
-    <version>18.1.1-SNAPSHOT</version>
+    <version>18.1.1</version>
     <description>Parent for export module</description>
     <packaging>pom</packaging>
 
@@ -17,7 +17,7 @@
         <connection>scm:git:ssh://git@github.com/cloudtrust/keycloak-export</connection>
         <developerConnection>scm:git:ssh://git@github.com/cloudtrust/keycloak-export</developerConnection>
         <url>https://github.com/cloudtrust/keycloak-export</url>
-        <tag>HEAD</tag>
+        <tag>18.1.1</tag>
     </scm>
 
     <modules>

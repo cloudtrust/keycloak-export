@@ -5,7 +5,7 @@
     <parent>
         <groupId>io.cloudtrust</groupId>
         <artifactId>keycloak-export-parent</artifactId>
-        <version>18.1.1-SNAPSHOT</version>
+        <version>18.1.1</version>
     </parent>
 
     <artifactId>keycloak-export</artifactId>
