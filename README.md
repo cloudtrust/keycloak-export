@@ -1,3 +1,9 @@
+
+# <font color="orange">This module was created for Keycloak 3.4.3.</font>
+
+# <font color="orange">As Keycloak export feature has been enhanced since the first version of this module, this module became obsolete and is not maintained anymore</font>
+
+
 # Keycloak export Module
 
 This module allows you to perform a full export from the REST-API, while keycloak is still running.
